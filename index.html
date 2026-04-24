@@ -535,12 +535,347 @@
     </div>
   </div>
 
-  <!-- ============ STEP 2-6 placeholders (filled in next commits) ============ -->
-  <div class="step-panel" data-panel="2"></div>
-  <div class="step-panel" data-panel="3"></div>
-  <div class="step-panel" data-panel="4"></div>
-  <div class="step-panel" data-panel="5"></div>
-  <div class="step-panel" data-panel="6"></div>
+  <!-- ============ STEP 2: ALUMINUM SPECS ============ -->
+  <div class="step-panel" data-panel="2">
+    <div class="step-header">
+      <h2>Step 2 · Aluminum Specifications</h2>
+      <p>Specify the alloy, temper, and critical dimensions of the extrusion profile.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Alloy & Temper</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label for="alloy">Aluminum Alloy</label>
+          <select id="alloy">
+            <option value="1100">1100 — Pure aluminum (soft)</option>
+            <option value="3003">3003 — Manganese alloy</option>
+            <option value="5052">5052 — Marine grade</option>
+            <option value="5083">5083 — High strength marine</option>
+            <option value="6005">6005 — Structural</option>
+            <option value="6061">6061 — General structural</option>
+            <option value="6063" selected>6063 — Architectural (standard)</option>
+            <option value="6082">6082 — Structural, high strength</option>
+            <option value="7075">7075 — Aerospace grade (hard)</option>
+          </select>
+          <span class="hint">6063 is the industry standard for most architectural extrusions.</span>
+        </div>
+        <div class="field">
+          <label for="temper">Temper</label>
+          <select id="temper">
+            <option value="F">F — As fabricated</option>
+            <option value="O">O — Annealed</option>
+            <option value="T1">T1 — Cooled from hot working</option>
+            <option value="T4">T4 — Solution heat treated</option>
+            <option value="T5">T5 — Cooled + artificially aged</option>
+            <option value="T6" selected>T6 — Heat treated + aged (standard)</option>
+            <option value="T651">T651 — T6 + stress relieved</option>
+            <option value="T6511">T6511 — T6 + stress relieved, minor straightening</option>
+          </select>
+          <span class="hint">T6 is the most common temper for structural use.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Profile Dimensions (mm)</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label for="width">Overall Width (A)</label>
+          <input type="number" id="width" min="1" step="0.1" value="60" oninput="updateDerived()">
+        </div>
+        <div class="field">
+          <label for="height">Overall Height (B)</label>
+          <input type="number" id="height" min="1" step="0.1" value="40" oninput="updateDerived()">
+        </div>
+        <div class="field">
+          <label for="tmin">Min Wall Thickness</label>
+          <input type="number" id="tmin" min="0.5" step="0.1" value="2.0" oninput="updateDerived()">
+        </div>
+        <div class="field">
+          <label for="tmax">Max Wall Thickness</label>
+          <input type="number" id="tmax" min="0.5" step="0.1" value="3.0" oninput="updateDerived()">
+        </div>
+        <div class="field">
+          <label for="flange">Flange Thickness</label>
+          <input type="number" id="flange" min="0" step="0.1" value="3.0">
+          <span class="hint">For angles, tees, beams.</span>
+        </div>
+        <div class="field">
+          <label for="radius">Corner Radius</label>
+          <input type="number" id="radius" min="0" step="0.1" value="1.0">
+        </div>
+        <div class="field">
+          <label for="voidW">Void Width (hollow only)</label>
+          <input type="number" id="voidW" min="0" step="0.1" value="0" oninput="updateDerived()">
+        </div>
+        <div class="field">
+          <label for="voidH">Void Height (hollow only)</label>
+          <input type="number" id="voidH" min="0" step="0.1" value="0" oninput="updateDerived()">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Auto-Calculated</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label>Circle Circumscribing Diameter (CCD)</label>
+          <div class="computed" id="ccdDisplay">— mm</div>
+          <span class="hint">Smallest circle that fits the profile. Determines container size.</span>
+        </div>
+        <div class="field">
+          <label>Cross-Sectional Area</label>
+          <div class="computed" id="areaDisplay">— cm²</div>
+        </div>
+        <div class="field">
+          <label>Profile Weight per Meter</label>
+          <div class="computed" id="weightPerMDisplay">— kg/m</div>
+          <span class="hint">Aluminum density = 2.70 g/cm³</span>
+        </div>
+        <div class="field">
+          <label>Tongue Ratio (semi-hollow)</label>
+          <div class="computed" id="tongueDisplay">—</div>
+          <span class="hint">Warn if > 4 (high die stress).</span>
+        </div>
+      </div>
+      <div id="tongueWarn"></div>
+    </div>
+
+    <div class="step-actions">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ============ STEP 3: DIE MATERIAL & DIMENSIONS ============ -->
+  <div class="step-panel" data-panel="3">
+    <div class="step-header">
+      <h2>Step 3 · Die Material & Dimensions</h2>
+      <p>Select the die steel, container size, and bearing geometry.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Die Steel Grade</h3>
+      <div class="radio-group" id="dieSteelGroup">
+        <label class="radio-option selected">
+          <input type="radio" name="dieSteel" value="H13" checked data-price="4.50">
+          <div>
+            <div class="opt-name">H13 / SKD61</div>
+            <div class="opt-desc">Industry standard hot-work tool steel</div>
+            <div class="opt-price">$4.50 / kg</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="dieSteel" value="H11" data-price="4.80">
+          <div>
+            <div class="opt-name">H11</div>
+            <div class="opt-desc">Tougher, better impact resistance</div>
+            <div class="opt-price">$4.80 / kg</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="dieSteel" value="H21" data-price="5.20">
+          <div>
+            <div class="opt-name">H21</div>
+            <div class="opt-desc">For high-temp and long runs</div>
+            <div class="opt-price">$5.20 / kg</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="dieSteel" value="1.2367" data-price="4.60">
+          <div>
+            <div class="opt-name">1.2367 (EU H13)</div>
+            <div class="opt-desc">European H13 equivalent, high purity</div>
+            <div class="opt-price">$4.60 / kg</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Container & Die Dimensions</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label for="container">Container / Billet Size</label>
+          <select id="container">
+            <option value="3">3" (76mm)</option>
+            <option value="4">4" (102mm)</option>
+            <option value="5">5" (127mm)</option>
+            <option value="6">6" (152mm)</option>
+            <option value="7" selected>7" (178mm)</option>
+            <option value="8">8" (203mm)</option>
+            <option value="10">10" (254mm)</option>
+            <option value="12">12" (305mm)</option>
+          </select>
+          <span class="hint" id="containerHint">Auto-suggested: —</span>
+        </div>
+        <div class="field">
+          <label>Die Outer Diameter</label>
+          <div class="computed" id="dieODDisplay">— mm</div>
+          <span class="hint">Container bore + 2 × 30mm ring wall.</span>
+        </div>
+        <div class="field">
+          <label for="dieThickness">Die Thickness (mm)</label>
+          <input type="number" id="dieThickness" min="20" step="1" value="120">
+          <span class="hint" id="thicknessHint">Auto-suggested by alloy + type.</span>
+        </div>
+        <div class="field">
+          <label for="cavities">Number of Cavities (Holes)</label>
+          <select id="cavities">
+            <option value="1" selected>1 cavity</option>
+            <option value="2">2 cavities</option>
+            <option value="4">4 cavities</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="bearing">Bearing Length (mm)</label>
+          <input type="number" id="bearing" min="1" step="0.5" value="8">
+          <span class="hint" id="bearingHint">Auto-suggested based on alloy × t_min.</span>
+        </div>
+        <div class="field">
+          <label>Estimated Die Weight</label>
+          <div class="computed" id="dieWeightDisplay">— kg</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-actions">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ============ STEP 4: COATING ============ -->
+  <div class="step-panel" data-panel="4">
+    <div class="step-header">
+      <h2>Step 4 · Coating & Finishing</h2>
+      <p>Surface treatments extend die life by increasing hardness and reducing aluminum pick-up.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Nitriding</h3>
+      <div class="radio-group" id="nitrideGroup">
+        <label class="radio-option selected">
+          <input type="radio" name="nitride" value="gas" checked data-price="0.80">
+          <div>
+            <div class="opt-name">Gas Nitriding</div>
+            <div class="opt-desc">Standard process, 60-65 HRC surface</div>
+            <div class="opt-price">$0.80 / kg die weight</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="nitride" value="salt" data-price="1.10">
+          <div>
+            <div class="opt-name">Salt Bath (Tufftride / QPQ)</div>
+            <div class="opt-desc">Fast, excellent anti-wear</div>
+            <div class="opt-price">$1.10 / kg die weight</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="nitride" value="plasma" data-price="1.60">
+          <div>
+            <div class="opt-name">Plasma Nitriding</div>
+            <div class="opt-desc">Precise control, ideal for complex geometry</div>
+            <div class="opt-price">$1.60 / kg die weight</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="nitride" value="none" data-price="0">
+          <div>
+            <div class="opt-name">None</div>
+            <div class="opt-desc">Not recommended for production runs</div>
+            <div class="opt-price">$0</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>PVD Coating (Optional)</h3>
+      <div class="radio-group" id="pvdGroup">
+        <label class="radio-option selected">
+          <input type="radio" name="pvd" value="none" checked data-price="0">
+          <div>
+            <div class="opt-name">No PVD</div>
+            <div class="opt-desc">Nitriding only</div>
+            <div class="opt-price">$0</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="pvd" value="tin" data-price="120">
+          <div>
+            <div class="opt-name">TiN (Titanium Nitride)</div>
+            <div class="opt-desc">Gold color, 2200 HV</div>
+            <div class="opt-price">+ $120 flat</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="pvd" value="tialn" data-price="160">
+          <div>
+            <div class="opt-name">TiAlN (Titanium Aluminum Nitride)</div>
+            <div class="opt-desc">Higher thermal resistance, 3000 HV</div>
+            <div class="opt-price">+ $160 flat</div>
+          </div>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="pvd" value="crn" data-price="140">
+          <div>
+            <div class="opt-name">CrN (Chromium Nitride)</div>
+            <div class="opt-desc">Best corrosion resistance, 1800 HV</div>
+            <div class="opt-price">+ $140 flat</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="step-actions">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ============ STEP 5: QUANTITY ============ -->
+  <div class="step-panel" data-panel="5">
+    <div class="step-header">
+      <h2>Step 5 · Quantity & Production Run</h2>
+      <p>How many dies to manufacture and how many tons of aluminum will each die run.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Production Planning</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label for="dieQty">Number of Dies to Manufacture</label>
+          <input type="number" id="dieQty" min="1" step="1" value="1">
+          <span class="hint">Bulk orders reduce per-unit cost.</span>
+        </div>
+        <div class="field">
+          <label for="tonsPerDie">Expected Aluminum per Die (tonnes)</label>
+          <input type="number" id="tonsPerDie" min="1" step="1" value="50">
+          <span class="hint">Typical die life: 30-80 tonnes.</span>
+        </div>
+        <div class="field">
+          <label>Total Aluminum Run</label>
+          <div class="computed" id="totalRunDisplay">— tonnes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-actions">
+      <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+      <button class="btn btn-primary" onclick="calculateQuote()">Calculate Quote →</button>
+    </div>
+  </div>
+
+  <!-- ============ STEP 6: RESULTS ============ -->
+  <div class="step-panel" data-panel="6">
+    <div class="step-header">
+      <h2>Step 6 · Quotation & Results</h2>
+      <p>Final estimate based on your inputs. Adjust the profit margin slider to see pricing.</p>
+    </div>
+    <div id="resultsContent"></div>
+  </div>
 
 </main>
 
@@ -654,6 +989,98 @@
     });
   }
 
+  /* ============ FORM DERIVATIONS ============ */
+  function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+  function computeCrossArea() {
+    const W = num("width"), H = num("height");
+    const tmin = num("tmin"), tmax = num("tmax");
+    const vW = num("voidW"), vH = num("voidH");
+    const tAvg = (tmin + tmax) / 2;
+    if (!state.shapeType) return W * H / 100;
+    if (state.shapeType === "hollow") {
+      if (vW > 0 && vH > 0) return (W * H - vW * vH) / 100;
+      return (W * H - Math.max(0, (W - 2 * tAvg)) * Math.max(0, (H - 2 * tAvg))) / 100;
+    }
+    if (state.shape && ["angle-eq","angle-uneq","tee","zee","u-channel","i-beam"].includes(state.shape.id)) {
+      return (W * tAvg + (H - tAvg) * tAvg) / 100;
+    }
+    if (state.shape && state.shape.id === "round") return (Math.PI / 4) * Math.pow(W, 2) / 100;
+    return W * H / 100;
+  }
+
+  function updateDerived() {
+    const W = num("width"), H = num("height");
+    const tmin = num("tmin");
+    const vW = num("voidW"), vH = num("voidH");
+    const ccd = Math.sqrt(W * W + H * H);
+    const area = computeCrossArea();
+    const weightPerM = area * 2.70;
+
+    document.getElementById("ccdDisplay").textContent = ccd.toFixed(1) + " mm";
+    document.getElementById("areaDisplay").textContent = area.toFixed(2) + " cm²";
+    document.getElementById("weightPerMDisplay").textContent = weightPerM.toFixed(3) + " kg/m";
+
+    let tongueRatio = 0;
+    if (state.shapeType === "semi-hollow" && tmin > 0) {
+      const voidArea = (vW > 0 && vH > 0) ? (vW * vH) / 100 : area * 0.2;
+      tongueRatio = voidArea / (tmin * tmin / 100);
+    }
+    document.getElementById("tongueDisplay").textContent = tongueRatio > 0 ? tongueRatio.toFixed(2) : "N/A";
+    const warnBox = document.getElementById("tongueWarn");
+    warnBox.innerHTML = tongueRatio > 4
+      ? `<div class="alert alert-warn">⚠ High tongue ratio (${tongueRatio.toFixed(2)}) — increased die stress and breakage risk. Consider alternative design.</div>`
+      : "";
+
+    // Suggest container size: CCD × 1.35, rounded up
+    const suggestedBoreMM = ccd * 1.35;
+    const standardBores = [76, 102, 127, 152, 178, 203, 254, 305];
+    const best = standardBores.find(b => b >= suggestedBoreMM) || 305;
+    const bestInches = { 76: "3", 102: "4", 127: "5", 152: "6", 178: "7", 203: "8", 254: "10", 305: "12" }[best];
+    document.getElementById("containerHint").textContent = `Auto-suggested: ${bestInches}" (${best}mm)`;
+
+    // Suggest die thickness
+    const alloy = document.getElementById("alloy").value;
+    const is6xxx = alloy.startsWith("6");
+    const baseThickness = state.shapeType === "hollow" ? 180 : state.shapeType === "semi-hollow" ? 150 : 120;
+    document.getElementById("thicknessHint").textContent = `Auto-suggested: ${baseThickness}mm for ${state.shapeType || "this"} ${is6xxx ? "6xxx" : alloy} profile.`;
+
+    // Suggest bearing length
+    const is7xxx = alloy.startsWith("7");
+    const is1or3 = alloy.startsWith("1") || alloy.startsWith("3");
+    const bearingMult = is7xxx ? 6 : is1or3 ? 3 : 4;
+    document.getElementById("bearingHint").textContent = `Auto-suggested: ${(bearingMult * tmin).toFixed(1)}mm (${bearingMult}× t_min)`;
+
+    // Update die OD + weight
+    const container = parseInt(document.getElementById("container").value, 10);
+    const bores = { 3: 76, 4: 102, 5: 127, 6: 152, 7: 178, 8: 203, 10: 254, 12: 305 };
+    const bore = bores[container] || 178;
+    const dieOD = bore + 60;
+    document.getElementById("dieODDisplay").textContent = dieOD + " mm";
+
+    const dieThk = num("dieThickness");
+    const cavities = parseInt(document.getElementById("cavities").value, 10);
+    const volCm3 = (Math.PI / 4) * Math.pow(dieOD / 10, 2) * (dieThk / 10);
+    const dieWt = volCm3 * 7.80 / 1000 * cavities;
+    document.getElementById("dieWeightDisplay").textContent = dieWt.toFixed(2) + " kg";
+
+    // Total run
+    const dies = num("dieQty"), tpd = num("tonsPerDie");
+    document.getElementById("totalRunDisplay").textContent = (dies * tpd).toFixed(1) + " tonnes";
+  }
+
+  /* ============ RADIO UI BINDING ============ */
+  function bindRadioGroup(groupId, name) {
+    const group = document.getElementById(groupId);
+    if (!group) return;
+    group.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+      input.addEventListener("change", () => {
+        group.querySelectorAll(".radio-option").forEach(o => o.classList.remove("selected"));
+        input.closest(".radio-option").classList.add("selected");
+      });
+    });
+  }
+
   /* ============ RESET ============ */
   function resetAll() {
     if (!confirm("Clear all inputs and start over?")) return;
@@ -664,7 +1091,18 @@
   document.addEventListener("DOMContentLoaded", () => {
     renderShapes();
     setupUpload();
-    console.log("ExtrudeCalc Pro — shape selector ready");
+    bindRadioGroup("dieSteelGroup", "dieSteel");
+    bindRadioGroup("nitrideGroup", "nitride");
+    bindRadioGroup("pvdGroup", "pvd");
+
+    ["container","dieThickness","cavities","alloy","dieQty","tonsPerDie","voidW","voidH","tmin","tmax","width","height"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", updateDerived);
+      if (el) el.addEventListener("change", updateDerived);
+    });
+
+    updateDerived();
+    console.log("ExtrudeCalc Pro — forms ready");
   });
 </script>
 
