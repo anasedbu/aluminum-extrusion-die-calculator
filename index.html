@@ -1069,6 +1069,123 @@
     document.getElementById("totalRunDisplay").textContent = (dies * tpd).toFixed(1) + " tonnes";
   }
 
+  /* ============ CALCULATION ENGINE ============ */
+  function calcComplexity() {
+    let score = 1;
+    if (state.shapeType === "semi-hollow") score += 2;
+    if (state.shapeType === "hollow") score += 3;
+    const ccd = Math.sqrt(num("width") ** 2 + num("height") ** 2);
+    if (ccd > 150) score += 1;
+    if (ccd > 250) score += 1;
+    const cavs = parseInt(document.getElementById("cavities").value, 10);
+    if (cavs >= 4) score += 1;
+    if (state.shape && state.shape.id === "custom") score += 1;
+    return Math.min(5, Math.max(1, score));
+  }
+
+  function machiningByScore(score) {
+    const table = {
+      1: { cost: 280,  method: "CNC Milling",                 badge: "badge-green"  },
+      2: { cost: 420,  method: "CNC Milling",                 badge: "badge-green"  },
+      3: { cost: 680,  method: "CNC + Wire EDM",              badge: "badge-blue"   },
+      4: { cost: 950,  method: "CNC + Wire EDM + Sink EDM",   badge: "badge-orange" },
+      5: { cost: 1350, method: "CNC + Sink EDM (heavy work)", badge: "badge-red"    }
+    };
+    return table[score];
+  }
+
+  function leadTime(score, hollow, pvdNone, qty) {
+    let low, high;
+    if (score <= 2)       { low = 5;  high = 7;  }
+    else if (score === 3) { low = 7;  high = 10; }
+    else if (hollow)      { low = 12; high = 18; }
+    else                  { low = 10; high = 14; }
+    if (!pvdNone) { low += 3; high += 3; }
+    if (qty > 3) { const extra = (qty - 1) * 2; low += extra; high += extra; }
+    return { low, high };
+  }
+
+  function getSelectedRadio(name) {
+    return document.querySelector(`input[name="${name}"]:checked`);
+  }
+
+  function computeQuote() {
+    const q = {};
+
+    // Inputs
+    q.shape = state.shape ? state.shape.name : "Custom";
+    q.shapeType = state.shapeType || "solid";
+    q.alloy = document.getElementById("alloy").value;
+    q.temper = document.getElementById("temper").value;
+    q.width = num("width");
+    q.height = num("height");
+    q.tmin = num("tmin");
+    q.tmax = num("tmax");
+
+    // Derived
+    q.ccd = Math.sqrt(q.width ** 2 + q.height ** 2);
+    q.area = computeCrossArea();
+    q.weightPerM = q.area * 2.70;
+
+    // Die steel
+    const dieRadio = getSelectedRadio("dieSteel");
+    q.dieSteel = dieRadio.value;
+    q.steelPricePerKg = parseFloat(dieRadio.dataset.price);
+    const container = parseInt(document.getElementById("container").value, 10);
+    const bores = { 3: 76, 4: 102, 5: 127, 6: 152, 7: 178, 8: 203, 10: 254, 12: 305 };
+    q.containerBore = bores[container] || 178;
+    q.containerInches = container + '"';
+    q.dieOD = q.containerBore + 60;
+    q.dieThickness = num("dieThickness");
+    q.cavities = parseInt(document.getElementById("cavities").value, 10);
+    q.bearing = num("bearing");
+
+    // Die weight (cm³ → kg at 7.8 g/cm³)
+    const volCm3 = (Math.PI / 4) * Math.pow(q.dieOD / 10, 2) * (q.dieThickness / 10);
+    q.dieWeightPerCavity = volCm3 * 7.80 / 1000;
+    q.dieWeight = q.dieWeightPerCavity * q.cavities;
+
+    // Coatings
+    const nitride = getSelectedRadio("nitride");
+    q.nitrideType = nitride.value;
+    q.nitrideCostPerKg = parseFloat(nitride.dataset.price);
+    const pvd = getSelectedRadio("pvd");
+    q.pvdType = pvd.value;
+    q.pvdCost = parseFloat(pvd.dataset.price);
+
+    // Quantity
+    q.dieQty = Math.max(1, Math.floor(num("dieQty")));
+    q.tonsPerDie = num("tonsPerDie");
+    q.totalTons = q.dieQty * q.tonsPerDie;
+
+    // Complexity + machining
+    q.complexity = calcComplexity();
+    const m = machiningByScore(q.complexity);
+    q.machiningCost = m.cost;
+    q.cuttingMethod = m.method;
+    q.cuttingBadge = m.badge;
+
+    // Costs per die
+    q.steelCost = q.dieWeight * q.steelPricePerKg;
+    q.nitrideCost = q.dieWeight * q.nitrideCostPerKg;
+    q.pvdCostLine = q.pvdCost;
+    q.perDieCost = q.steelCost + q.machiningCost + q.nitrideCost + q.pvdCostLine;
+
+    // Total
+    q.totalCost = q.perDieCost * q.dieQty;
+
+    // Lead time
+    const lt = leadTime(q.complexity, q.shapeType === "hollow", q.pvdType === "none", q.dieQty);
+    q.leadLow = lt.low;
+    q.leadHigh = lt.high;
+
+    // Die life estimate
+    const baseLife = q.shapeType === "hollow" ? 30 : q.shapeType === "semi-hollow" ? 40 : 50;
+    q.estDieLife = Math.round(baseLife / (q.complexity / 2));
+
+    return q;
+  }
+
   /* ============ RADIO UI BINDING ============ */
   function bindRadioGroup(groupId, name) {
     const group = document.getElementById(groupId);
