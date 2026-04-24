@@ -1198,6 +1198,192 @@
     });
   }
 
+  /* ============ RESULTS DASHBOARD ============ */
+  let currentQuote = null;
+  const USD = v => "$" + (v || 0).toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+
+  function renderResults(q) {
+    currentQuote = q;
+    const container = document.getElementById("resultsContent");
+    container.innerHTML = `
+      <div class="panel">
+        <h3>Profile & Die Summary</h3>
+        <div class="results-grid">
+          <div class="metric-card">
+            <div class="metric-label">Profile</div>
+            <div class="metric-value" style="font-size:1.1rem">${q.shape}</div>
+            <div class="metric-sub">${q.shapeType.toUpperCase()} · ${q.alloy}-${q.temper}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Dimensions</div>
+            <div class="metric-value" style="font-size:1.1rem">${q.width} × ${q.height} mm</div>
+            <div class="metric-sub">Wall: ${q.tmin}-${q.tmax} mm · CCD ${q.ccd.toFixed(1)} mm</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Container / Billet</div>
+            <div class="metric-value" style="font-size:1.1rem">${q.containerInches} (${q.containerBore}mm)</div>
+            <div class="metric-sub">Die OD: ${q.dieOD}mm · Thk: ${q.dieThickness}mm</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Profile Weight</div>
+            <div class="metric-value">${q.weightPerM.toFixed(3)} <span style="font-size:0.9rem;color:#94a3b8">kg/m</span></div>
+            <div class="metric-sub">Area: ${q.area.toFixed(2)} cm²</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Manufacturing Details</h3>
+        <div class="results-grid">
+          <div class="metric-card">
+            <div class="metric-label">Die Steel</div>
+            <div class="metric-value">${q.dieSteel}</div>
+            <div class="metric-sub">${q.dieWeight.toFixed(2)} kg total · ${q.cavities} cavity</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Cutting Method</div>
+            <div class="metric-value" style="font-size:1rem">
+              <span class="badge ${q.cuttingBadge}">Score ${q.complexity}/5</span>
+            </div>
+            <div class="metric-sub">${q.cuttingMethod}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Coating</div>
+            <div class="metric-value" style="font-size:1rem">${q.nitrideType === "none" ? "No nitriding" : q.nitrideType.charAt(0).toUpperCase() + q.nitrideType.slice(1) + " nitriding"}</div>
+            <div class="metric-sub">${q.pvdType === "none" ? "No PVD" : "+ " + q.pvdType.toUpperCase() + " PVD"}</div>
+          </div>
+          <div class="metric-card warn">
+            <div class="metric-label">Lead Time</div>
+            <div class="metric-value">${q.leadLow}–${q.leadHigh} <span style="font-size:0.9rem;color:#94a3b8">days</span></div>
+            <div class="metric-sub">After design approval</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Cost Breakdown (per die)</h3>
+        <table class="breakdown-table">
+          <thead>
+            <tr><th>Line Item</th><th style="text-align:right">Cost (USD)</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Die steel material <span style="color:#64748b">(${q.dieSteel} · ${q.dieWeight.toFixed(2)} kg @ ${USD(q.steelPricePerKg)}/kg)</span></td>
+              <td class="cost">${USD(q.steelCost)}</td>
+            </tr>
+            <tr>
+              <td>Machining <span style="color:#64748b">(${q.cuttingMethod})</span></td>
+              <td class="cost">${USD(q.machiningCost)}</td>
+            </tr>
+            <tr>
+              <td>Nitriding <span style="color:#64748b">(${q.nitrideType})</span></td>
+              <td class="cost">${USD(q.nitrideCost)}</td>
+            </tr>
+            <tr>
+              <td>PVD coating <span style="color:#64748b">(${q.pvdType})</span></td>
+              <td class="cost">${USD(q.pvdCostLine)}</td>
+            </tr>
+            <tr>
+              <td><strong>Subtotal per die</strong></td>
+              <td class="cost">${USD(q.perDieCost)}</td>
+            </tr>
+            <tr>
+              <td>× Quantity (${q.dieQty} dies)</td>
+              <td class="cost">×${q.dieQty}</td>
+            </tr>
+            <tr class="total">
+              <td>TOTAL MANUFACTURING COST</td>
+              <td class="cost">${USD(q.totalCost)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel no-print">
+        <h3>Profit Margin</h3>
+        <div class="margin-control">
+          <label for="marginSlider">Gross Margin</label>
+          <input type="range" id="marginSlider" min="0" max="60" step="1" value="30" oninput="updateMargin()">
+          <div class="margin-value" id="marginValue">30%</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Final Quote</h3>
+        <div class="results-grid">
+          <div class="metric-card">
+            <div class="metric-label">Manufacturing Cost</div>
+            <div class="metric-value">${USD(q.totalCost)}</div>
+            <div class="metric-sub">Raw internal cost</div>
+          </div>
+          <div class="metric-card accent" id="sellingCard">
+            <div class="metric-label">Customer Selling Price</div>
+            <div class="metric-value" id="sellingValue">—</div>
+            <div class="metric-sub" id="sellingSub">—</div>
+          </div>
+          <div class="metric-card accent" id="profitCard">
+            <div class="metric-label">Gross Profit</div>
+            <div class="metric-value" id="profitValue">—</div>
+            <div class="metric-sub" id="profitSub">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Production Insights</h3>
+        <div class="results-grid">
+          <div class="metric-card">
+            <div class="metric-label">Total Aluminum to Extrude</div>
+            <div class="metric-value">${q.totalTons.toFixed(1)} <span style="font-size:0.9rem;color:#94a3b8">tonnes</span></div>
+            <div class="metric-sub">${q.dieQty} die(s) × ${q.tonsPerDie} t</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Est. Die Life</div>
+            <div class="metric-value">~${q.estDieLife} <span style="font-size:0.9rem;color:#94a3b8">tonnes</span></div>
+            <div class="metric-sub">Before re-nitriding / retiring</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Bearing Length</div>
+            <div class="metric-value">${q.bearing} <span style="font-size:0.9rem;color:#94a3b8">mm</span></div>
+            <div class="metric-sub">Tuned to ${q.alloy}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Cost per Kg Aluminum</div>
+            <div class="metric-value">${USD(q.totalCost / (q.totalTons * 1000))}</div>
+            <div class="metric-sub">Die cost amortized over run</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn btn-ghost" onclick="prevStep()">← Back to Inputs</button>
+        <div style="display:flex;gap:0.75rem">
+          <button class="btn btn-secondary no-print" onclick="window.print()">🖨 Print / Save PDF</button>
+          <button class="btn btn-primary no-print" onclick="resetAll()">↻ New Quote</button>
+        </div>
+      </div>
+    `;
+    updateMargin();
+  }
+
+  function updateMargin() {
+    if (!currentQuote) return;
+    const m = parseInt(document.getElementById("marginSlider").value, 10);
+    document.getElementById("marginValue").textContent = m + "%";
+    const selling = m >= 100 ? currentQuote.totalCost : currentQuote.totalCost / (1 - m / 100);
+    const profit = selling - currentQuote.totalCost;
+    document.getElementById("sellingValue").textContent = USD(selling);
+    document.getElementById("sellingSub").textContent = USD(selling / currentQuote.dieQty) + " per die";
+    document.getElementById("profitValue").textContent = USD(profit);
+    document.getElementById("profitSub").textContent = m + "% margin applied";
+  }
+
+  function calculateQuote() {
+    const q = computeQuote();
+    renderResults(q);
+    goToStep(6);
+  }
+
   /* ============ RESET ============ */
   function resetAll() {
     if (!confirm("Clear all inputs and start over?")) return;
