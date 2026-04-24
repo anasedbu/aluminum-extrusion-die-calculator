@@ -505,17 +505,167 @@
 </nav>
 
 <main id="main">
-  <!-- Steps will be rendered here -->
+
+  <!-- ============ STEP 1: SHAPE ============ -->
   <div class="step-panel active" data-panel="1">
     <div class="step-header">
-      <h2>Loading…</h2>
+      <h2>Step 1 · Select Extrusion Profile Shape</h2>
+      <p>Choose one of the common shapes below, or upload an image of a custom profile.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Common Extrusion Profiles</h3>
+      <div class="shape-grid" id="shapeGrid"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Custom Profile — Upload Image</h3>
+      <label class="upload-area" id="uploadArea">
+        <input type="file" id="uploadInput" accept="image/*">
+        <div class="icon">⤒</div>
+        <h4>Drop an image here or click to browse</h4>
+        <p>PNG, JPG, SVG — cross-section drawing of your custom profile</p>
+        <img id="uploadPreview" class="upload-preview" style="display:none;" alt="Custom profile preview">
+      </label>
+    </div>
+
+    <div class="step-actions">
+      <button class="btn btn-ghost" disabled>← Back</button>
+      <button class="btn btn-primary" onclick="nextStep()">Continue →</button>
     </div>
   </div>
+
+  <!-- ============ STEP 2-6 placeholders (filled in next commits) ============ -->
+  <div class="step-panel" data-panel="2"></div>
+  <div class="step-panel" data-panel="3"></div>
+  <div class="step-panel" data-panel="4"></div>
+  <div class="step-panel" data-panel="5"></div>
+  <div class="step-panel" data-panel="6"></div>
+
 </main>
 
 <script>
-  // App bootstrapping — full implementation to follow in next commits
-  console.log("ExtrudeCalc Pro — loading");
+  /* ============ SHAPE LIBRARY ============ */
+  const SHAPES = [
+    { id: "round",       name: "Round Bar",          type: "solid",       svg: `<circle cx="50" cy="50" r="34" fill="none" stroke="#f97316" stroke-width="6"/>` },
+    { id: "square",      name: "Square Bar",         type: "solid",       svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#f97316" stroke-width="6"/>` },
+    { id: "flat",        name: "Flat Bar",           type: "solid",       svg: `<rect x="10" y="38" width="80" height="24" fill="none" stroke="#f97316" stroke-width="6"/>` },
+    { id: "angle-eq",    name: "Equal Angle (L)",    type: "solid",       svg: `<path d="M20 20 L20 80 L80 80 L80 70 L30 70 L30 20 Z" fill="none" stroke="#f97316" stroke-width="5"/>` },
+    { id: "angle-uneq",  name: "Unequal Angle",      type: "solid",       svg: `<path d="M15 25 L15 80 L85 80 L85 68 L27 68 L27 25 Z" fill="none" stroke="#f97316" stroke-width="5"/>` },
+    { id: "tee",         name: "T-Shape",            type: "solid",       svg: `<path d="M15 20 L85 20 L85 35 L57 35 L57 80 L43 80 L43 35 L15 35 Z" fill="none" stroke="#f97316" stroke-width="5"/>` },
+    { id: "zee",         name: "Z-Shape",            type: "solid",       svg: `<path d="M20 20 L80 20 L80 32 L45 32 L45 68 L80 68 L80 80 L20 80 L20 68 L55 68 L55 32 L20 32 Z" fill="none" stroke="#f97316" stroke-width="4"/>` },
+    { id: "u-channel",   name: "U / C Channel",      type: "solid",       svg: `<path d="M20 20 L20 80 L80 80 L80 20 L68 20 L68 68 L32 68 L32 20 Z" fill="none" stroke="#f97316" stroke-width="5"/>` },
+    { id: "i-beam",      name: "I / H Beam",         type: "solid",       svg: `<path d="M20 20 L80 20 L80 32 L56 32 L56 68 L80 68 L80 80 L20 80 L20 68 L44 68 L44 32 L20 32 Z" fill="none" stroke="#f97316" stroke-width="4"/>` },
+    { id: "round-tube",  name: "Round Tube",         type: "hollow",      svg: `<circle cx="50" cy="50" r="34" fill="none" stroke="#f97316" stroke-width="5"/><circle cx="50" cy="50" r="22" fill="none" stroke="#f97316" stroke-width="5"/>` },
+    { id: "square-tube", name: "Square Tube",        type: "hollow",      svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#f97316" stroke-width="5"/><rect x="30" y="30" width="40" height="40" fill="none" stroke="#f97316" stroke-width="5"/>` },
+    { id: "rect-tube",   name: "Rectangular Tube",   type: "hollow",      svg: `<rect x="10" y="25" width="80" height="50" fill="none" stroke="#f97316" stroke-width="5"/><rect x="20" y="35" width="60" height="30" fill="none" stroke="#f97316" stroke-width="5"/>` },
+    { id: "t-slot",      name: "T-Slot Profile",     type: "semi-hollow", svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#f97316" stroke-width="4"/><path d="M50 22 L50 40 M42 40 L58 40 M22 50 L40 50 M40 42 L40 58 M78 50 L60 50 M60 42 L60 58 M50 78 L50 60 M42 60 L58 60" stroke="#f97316" stroke-width="3" fill="none"/>` },
+    { id: "custom",      name: "Custom Solid",       type: "solid",       svg: `<path d="M20 30 Q30 15 50 20 Q75 15 80 40 Q85 65 70 75 Q50 85 30 75 Q15 65 20 45 Z" fill="none" stroke="#f97316" stroke-width="4" stroke-dasharray="4,3"/>` },
+    { id: "upload",      name: "Upload Image",       type: "any",         svg: `<path d="M30 60 L50 30 L70 60 M50 30 L50 70 M20 75 L80 75" stroke="#f97316" stroke-width="4" fill="none" stroke-linecap="round"/>` }
+  ];
+
+  /* ============ APP STATE ============ */
+  const state = {
+    step: 1,
+    shape: null,
+    shapeType: null,
+    customImage: null
+  };
+
+  /* ============ STEP NAVIGATION ============ */
+  function goToStep(n) {
+    if (n < 1 || n > 6) return;
+    state.step = n;
+    document.querySelectorAll(".step-panel").forEach(p => p.classList.remove("active"));
+    document.querySelector(`.step-panel[data-panel="${n}"]`).classList.add("active");
+    document.querySelectorAll(".step-pill").forEach(pill => {
+      const s = parseInt(pill.dataset.step, 10);
+      pill.classList.toggle("active", s === n);
+      pill.classList.toggle("completed", s < n);
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function nextStep() {
+    if (state.step === 1 && !state.shape) {
+      alert("Please select or upload a profile shape first.");
+      return;
+    }
+    goToStep(state.step + 1);
+  }
+  function prevStep() { goToStep(state.step - 1); }
+
+  /* ============ RENDER SHAPE GRID ============ */
+  function renderShapes() {
+    const grid = document.getElementById("shapeGrid");
+    grid.innerHTML = SHAPES.map(s => `
+      <div class="shape-card" data-id="${s.id}" onclick="selectShape('${s.id}')">
+        <svg viewBox="0 0 100 100">${s.svg}</svg>
+        <div class="shape-name">${s.name}</div>
+        <div class="shape-type">${s.type}</div>
+      </div>
+    `).join("");
+  }
+  function selectShape(id) {
+    const shape = SHAPES.find(s => s.id === id);
+    if (!shape) return;
+    state.shape = shape;
+    state.shapeType = shape.type;
+    document.querySelectorAll(".shape-card").forEach(c => {
+      c.classList.toggle("selected", c.dataset.id === id);
+    });
+    if (id === "upload") {
+      document.getElementById("uploadArea").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  /* ============ IMAGE UPLOAD ============ */
+  function setupUpload() {
+    const input = document.getElementById("uploadInput");
+    const preview = document.getElementById("uploadPreview");
+    const area = document.getElementById("uploadArea");
+
+    input.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        state.customImage = ev.target.result;
+        preview.src = ev.target.result;
+        preview.style.display = "block";
+        selectShape("upload");
+      };
+      reader.readAsDataURL(file);
+    });
+
+    ["dragover","dragenter"].forEach(ev => area.addEventListener(ev, e => {
+      e.preventDefault();
+      area.classList.add("dragover");
+    }));
+    ["dragleave","drop"].forEach(ev => area.addEventListener(ev, e => {
+      e.preventDefault();
+      area.classList.remove("dragover");
+    }));
+    area.addEventListener("drop", e => {
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event("change"));
+      }
+    });
+  }
+
+  /* ============ RESET ============ */
+  function resetAll() {
+    if (!confirm("Clear all inputs and start over?")) return;
+    location.reload();
+  }
+
+  /* ============ INIT ============ */
+  document.addEventListener("DOMContentLoaded", () => {
+    renderShapes();
+    setupUpload();
+    console.log("ExtrudeCalc Pro — shape selector ready");
+  });
 </script>
 
 </body>
