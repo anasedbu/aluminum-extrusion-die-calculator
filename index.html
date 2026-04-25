@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Extrusion Die Calculator</title>
+<title>Aluminum Extrusion Die Calculator</title>
 <style>
   /* ============ RESET ============ */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,7 +19,7 @@
   /* ============ HEADER ============ */
   header {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-bottom: 3px solid #f97316;
+    border-bottom: 3px solid #3B73B9;
     padding: 1.5rem 2rem;
     position: sticky;
     top: 0;
@@ -45,7 +45,7 @@
   }
   .logo-mark {
     width: 40px; height: 40px;
-    background: #f97316;
+    background: #3B73B9;
     border-radius: 8px;
     display: grid;
     place-items: center;
@@ -85,15 +85,15 @@
     user-select: none;
   }
   .step-pill.active {
-    background: #f97316;
+    background: #3B73B9;
     color: #0f172a;
-    border-color: #fb923c;
-    box-shadow: 0 4px 12px rgba(249,115,22,0.4);
+    border-color: #5B93D9;
+    box-shadow: 0 4px 12px rgba(59,115,185,0.4);
   }
   .step-pill.completed {
     background: #1e293b;
-    color: #f97316;
-    border-color: #f97316;
+    color: #3B73B9;
+    border-color: #3B73B9;
   }
   .step-pill .num {
     display: inline-block;
@@ -140,7 +140,7 @@
   }
   .panel h3 {
     font-size: 1.1rem;
-    color: #fb923c;
+    color: #5B93D9;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #334155;
@@ -178,8 +178,8 @@
   .field select:focus,
   .field textarea:focus {
     outline: none;
-    border-color: #f97316;
-    box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+    border-color: #3B73B9;
+    box-shadow: 0 0 0 3px rgba(59,115,185,0.15);
   }
   .field .hint {
     font-size: 0.75rem;
@@ -187,7 +187,7 @@
   }
   .field .computed {
     font-size: 0.9rem;
-    color: #fb923c;
+    color: #5B93D9;
     font-weight: 600;
   }
 
@@ -208,13 +208,13 @@
     text-decoration: none;
   }
   .btn-primary {
-    background: #f97316;
+    background: #3B73B9;
     color: #0f172a;
   }
   .btn-primary:hover {
-    background: #fb923c;
+    background: #5B93D9;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(249,115,22,0.4);
+    box-shadow: 0 4px 12px rgba(59,115,185,0.4);
   }
   .btn-secondary {
     background: #334155;
@@ -254,20 +254,20 @@
     position: relative;
   }
   .shape-card:hover {
-    border-color: #f97316;
+    border-color: #3B73B9;
     transform: translateY(-2px);
   }
   .shape-card.selected {
-    border-color: #f97316;
-    background: rgba(249,115,22,0.08);
-    box-shadow: 0 4px 16px rgba(249,115,22,0.2);
+    border-color: #3B73B9;
+    background: rgba(59,115,185,0.08);
+    box-shadow: 0 4px 16px rgba(59,115,185,0.2);
   }
   .shape-card.selected::before {
     content: "✓";
     position: absolute;
     top: 0.5rem; right: 0.5rem;
     width: 24px; height: 24px;
-    background: #f97316;
+    background: #3B73B9;
     color: #0f172a;
     border-radius: 50%;
     display: grid;
@@ -305,8 +305,8 @@
     margin-top: 1rem;
   }
   .upload-area:hover, .upload-area.dragover {
-    border-color: #f97316;
-    background: rgba(249,115,22,0.05);
+    border-color: #3B73B9;
+    background: rgba(59,115,185,0.05);
   }
   .upload-area input[type="file"] { display: none; }
   .upload-area .icon { font-size: 2.5rem; color: #64748b; }
@@ -332,7 +332,7 @@
     border: 1px solid #334155;
     border-radius: 12px;
     padding: 1.25rem;
-    border-left: 4px solid #f97316;
+    border-left: 4px solid #3B73B9;
   }
   .metric-card .metric-label {
     font-size: 0.75rem;
@@ -374,8 +374,8 @@
     letter-spacing: 0.5px;
   }
   .breakdown-table td.cost { text-align: right; font-weight: 600; font-family: "Consolas", "Monaco", monospace; }
-  .breakdown-table tr.total { background: rgba(249,115,22,0.08); }
-  .breakdown-table tr.total td { font-size: 1.1rem; color: #fb923c; font-weight: 700; border-top: 2px solid #f97316; }
+  .breakdown-table tr.total { background: rgba(59,115,185,0.08); }
+  .breakdown-table tr.total td { font-size: 1.1rem; color: #5B93D9; font-weight: 700; border-top: 2px solid #3B73B9; }
 
   /* ============ MARGIN SLIDER ============ */
   .margin-control {
@@ -396,12 +396,12 @@
   .margin-control input[type="range"] {
     flex: 1;
     min-width: 200px;
-    accent-color: #f97316;
+    accent-color: #3B73B9;
   }
   .margin-control .margin-value {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #f97316;
+    color: #3B73B9;
     min-width: 60px;
     text-align: right;
   }
@@ -447,14 +447,14 @@
     transition: all 0.2s;
   }
   .radio-option:hover { border-color: #64748b; }
-  .radio-option input { accent-color: #f97316; margin-top: 0.2rem; }
+  .radio-option input { accent-color: #3B73B9; margin-top: 0.2rem; }
   .radio-option.selected {
-    border-color: #f97316;
-    background: rgba(249,115,22,0.05);
+    border-color: #3B73B9;
+    background: rgba(59,115,185,0.05);
   }
   .radio-option .opt-name { font-weight: 600; color: #e2e8f0; font-size: 0.9rem; }
   .radio-option .opt-desc { font-size: 0.75rem; color: #94a3b8; margin-top: 0.125rem; }
-  .radio-option .opt-price { font-size: 0.8rem; color: #fb923c; font-weight: 600; margin-top: 0.25rem; }
+  .radio-option .opt-price { font-size: 0.8rem; color: #5B93D9; font-weight: 600; margin-top: 0.25rem; }
 
   /* ============ PRINT STYLES ============ */
   @media print {
@@ -487,7 +487,7 @@
     <div class="logo">
       <div class="logo-mark">⚙</div>
       <div>
-        ExtrudeCalc Pro
+        Aluminum Extrusion Die Calculator
         <div class="tagline">Die manufacturing estimation · USD</div>
       </div>
     </div>
@@ -882,21 +882,21 @@
 <script>
   /* ============ SHAPE LIBRARY ============ */
   const SHAPES = [
-    { id: "round",       name: "Round Bar",          type: "solid",       svg: `<circle cx="50" cy="50" r="34" fill="none" stroke="#f97316" stroke-width="6"/>` },
-    { id: "square",      name: "Square Bar",         type: "solid",       svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#f97316" stroke-width="6"/>` },
-    { id: "flat",        name: "Flat Bar",           type: "solid",       svg: `<rect x="10" y="38" width="80" height="24" fill="none" stroke="#f97316" stroke-width="6"/>` },
-    { id: "angle-eq",    name: "Equal Angle (L)",    type: "solid",       svg: `<path d="M20 20 L20 80 L80 80 L80 70 L30 70 L30 20 Z" fill="none" stroke="#f97316" stroke-width="5"/>` },
-    { id: "angle-uneq",  name: "Unequal Angle",      type: "solid",       svg: `<path d="M15 25 L15 80 L85 80 L85 68 L27 68 L27 25 Z" fill="none" stroke="#f97316" stroke-width="5"/>` },
-    { id: "tee",         name: "T-Shape",            type: "solid",       svg: `<path d="M15 20 L85 20 L85 35 L57 35 L57 80 L43 80 L43 35 L15 35 Z" fill="none" stroke="#f97316" stroke-width="5"/>` },
-    { id: "zee",         name: "Z-Shape",            type: "solid",       svg: `<path d="M20 20 L80 20 L80 32 L45 32 L45 68 L80 68 L80 80 L20 80 L20 68 L55 68 L55 32 L20 32 Z" fill="none" stroke="#f97316" stroke-width="4"/>` },
-    { id: "u-channel",   name: "U / C Channel",      type: "solid",       svg: `<path d="M20 20 L20 80 L80 80 L80 20 L68 20 L68 68 L32 68 L32 20 Z" fill="none" stroke="#f97316" stroke-width="5"/>` },
-    { id: "i-beam",      name: "I / H Beam",         type: "solid",       svg: `<path d="M20 20 L80 20 L80 32 L56 32 L56 68 L80 68 L80 80 L20 80 L20 68 L44 68 L44 32 L20 32 Z" fill="none" stroke="#f97316" stroke-width="4"/>` },
-    { id: "round-tube",  name: "Round Tube",         type: "hollow",      svg: `<circle cx="50" cy="50" r="34" fill="none" stroke="#f97316" stroke-width="5"/><circle cx="50" cy="50" r="22" fill="none" stroke="#f97316" stroke-width="5"/>` },
-    { id: "square-tube", name: "Square Tube",        type: "hollow",      svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#f97316" stroke-width="5"/><rect x="30" y="30" width="40" height="40" fill="none" stroke="#f97316" stroke-width="5"/>` },
-    { id: "rect-tube",   name: "Rectangular Tube",   type: "hollow",      svg: `<rect x="10" y="25" width="80" height="50" fill="none" stroke="#f97316" stroke-width="5"/><rect x="20" y="35" width="60" height="30" fill="none" stroke="#f97316" stroke-width="5"/>` },
-    { id: "t-slot",      name: "T-Slot Profile",     type: "semi-hollow", svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#f97316" stroke-width="4"/><path d="M50 22 L50 40 M42 40 L58 40 M22 50 L40 50 M40 42 L40 58 M78 50 L60 50 M60 42 L60 58 M50 78 L50 60 M42 60 L58 60" stroke="#f97316" stroke-width="3" fill="none"/>` },
-    { id: "custom",      name: "Custom Solid",       type: "solid",       svg: `<path d="M20 30 Q30 15 50 20 Q75 15 80 40 Q85 65 70 75 Q50 85 30 75 Q15 65 20 45 Z" fill="none" stroke="#f97316" stroke-width="4" stroke-dasharray="4,3"/>` },
-    { id: "upload",      name: "Upload Image",       type: "any",         svg: `<path d="M30 60 L50 30 L70 60 M50 30 L50 70 M20 75 L80 75" stroke="#f97316" stroke-width="4" fill="none" stroke-linecap="round"/>` }
+    { id: "round",       name: "Round Bar",          type: "solid",       svg: `<circle cx="50" cy="50" r="34" fill="none" stroke="#3B73B9" stroke-width="6"/>` },
+    { id: "square",      name: "Square Bar",         type: "solid",       svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#3B73B9" stroke-width="6"/>` },
+    { id: "flat",        name: "Flat Bar",           type: "solid",       svg: `<rect x="10" y="38" width="80" height="24" fill="none" stroke="#3B73B9" stroke-width="6"/>` },
+    { id: "angle-eq",    name: "Equal Angle (L)",    type: "solid",       svg: `<path d="M20 20 L20 80 L80 80 L80 70 L30 70 L30 20 Z" fill="none" stroke="#3B73B9" stroke-width="5"/>` },
+    { id: "angle-uneq",  name: "Unequal Angle",      type: "solid",       svg: `<path d="M15 25 L15 80 L85 80 L85 68 L27 68 L27 25 Z" fill="none" stroke="#3B73B9" stroke-width="5"/>` },
+    { id: "tee",         name: "T-Shape",            type: "solid",       svg: `<path d="M15 20 L85 20 L85 35 L57 35 L57 80 L43 80 L43 35 L15 35 Z" fill="none" stroke="#3B73B9" stroke-width="5"/>` },
+    { id: "zee",         name: "Z-Shape",            type: "solid",       svg: `<path d="M20 20 L80 20 L80 32 L45 32 L45 68 L80 68 L80 80 L20 80 L20 68 L55 68 L55 32 L20 32 Z" fill="none" stroke="#3B73B9" stroke-width="4"/>` },
+    { id: "u-channel",   name: "U / C Channel",      type: "solid",       svg: `<path d="M20 20 L20 80 L80 80 L80 20 L68 20 L68 68 L32 68 L32 20 Z" fill="none" stroke="#3B73B9" stroke-width="5"/>` },
+    { id: "i-beam",      name: "I / H Beam",         type: "solid",       svg: `<path d="M20 20 L80 20 L80 32 L56 32 L56 68 L80 68 L80 80 L20 80 L20 68 L44 68 L44 32 L20 32 Z" fill="none" stroke="#3B73B9" stroke-width="4"/>` },
+    { id: "round-tube",  name: "Round Tube",         type: "hollow",      svg: `<circle cx="50" cy="50" r="34" fill="none" stroke="#3B73B9" stroke-width="5"/><circle cx="50" cy="50" r="22" fill="none" stroke="#3B73B9" stroke-width="5"/>` },
+    { id: "square-tube", name: "Square Tube",        type: "hollow",      svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#3B73B9" stroke-width="5"/><rect x="30" y="30" width="40" height="40" fill="none" stroke="#3B73B9" stroke-width="5"/>` },
+    { id: "rect-tube",   name: "Rectangular Tube",   type: "hollow",      svg: `<rect x="10" y="25" width="80" height="50" fill="none" stroke="#3B73B9" stroke-width="5"/><rect x="20" y="35" width="60" height="30" fill="none" stroke="#3B73B9" stroke-width="5"/>` },
+    { id: "t-slot",      name: "T-Slot Profile",     type: "semi-hollow", svg: `<rect x="18" y="18" width="64" height="64" fill="none" stroke="#3B73B9" stroke-width="4"/><path d="M50 22 L50 40 M42 40 L58 40 M22 50 L40 50 M40 42 L40 58 M78 50 L60 50 M60 42 L60 58 M50 78 L50 60 M42 60 L58 60" stroke="#3B73B9" stroke-width="3" fill="none"/>` },
+    { id: "custom",      name: "Custom Solid",       type: "solid",       svg: `<path d="M20 30 Q30 15 50 20 Q75 15 80 40 Q85 65 70 75 Q50 85 30 75 Q15 65 20 45 Z" fill="none" stroke="#3B73B9" stroke-width="4" stroke-dasharray="4,3"/>` },
+    { id: "upload",      name: "Upload Image",       type: "any",         svg: `<path d="M30 60 L50 30 L70 60 M50 30 L50 70 M20 75 L80 75" stroke="#3B73B9" stroke-width="4" fill="none" stroke-linecap="round"/>` }
   ];
 
   /* ============ APP STATE ============ */
@@ -1405,7 +1405,7 @@
     });
 
     updateDerived();
-    console.log("ExtrudeCalc Pro — forms ready");
+    console.log("Aluminum Extrusion Die Calculator — forms ready");
   });
 </script>
 
