@@ -917,7 +917,7 @@
     <div class="panel">
       <h3>Aluminum Pricing — LME-Indexed</h3>
       <div class="alert alert-info">
-        Extruded aluminum is priced as <strong>LME 3-Month + USD 1,000 / MT conversion premium</strong>. Update the LME value to reflect today's London Metal Exchange quote.
+        Extruded aluminum is priced as <strong>LME 3-Month + USD 2,300 / MT conversion premium</strong>, targeting a <strong>~45% gross margin</strong> on production. Update the LME value to reflect today's London Metal Exchange quote.
       </div>
       <div class="form-grid">
         <div class="field">
@@ -927,13 +927,18 @@
         </div>
         <div class="field">
           <label>Conversion Premium (Fixed)</label>
-          <div class="computed">$1,000.00 / MT</div>
-          <span class="hint">Standard extrusion conversion margin.</span>
+          <div class="computed">$2,300.00 / MT</div>
+          <span class="hint">Tuned for ~45% production margin.</span>
         </div>
         <div class="field">
           <label>Extruded Aluminum Sell Price</label>
           <div class="computed" id="alSellDisplay">— / MT</div>
           <span class="hint">LME + premium = customer price.</span>
+        </div>
+        <div class="field">
+          <label>Production Gross Margin</label>
+          <div class="computed" id="alMarginDisplay">— %</div>
+          <span class="hint">Premium ÷ sell price.</span>
         </div>
         <div class="field">
           <label>Total Aluminum Revenue</label>
@@ -1152,9 +1157,12 @@
 
     // LME-indexed aluminum pricing
     const lme = num("lmePrice");
-    const sellPrice = lme + 1000;
+    const PREMIUM = 2300;
+    const sellPrice = lme + PREMIUM;
     const sellEl = document.getElementById("alSellDisplay");
     if (sellEl) sellEl.textContent = "$" + sellPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " / MT";
+    const marginEl = document.getElementById("alMarginDisplay");
+    if (marginEl) marginEl.textContent = ((PREMIUM / sellPrice) * 100).toFixed(1) + " %";
     const revEl = document.getElementById("alRevenueDisplay");
     if (revEl) revEl.textContent = "$" + (sellPrice * totalTons).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
@@ -1265,11 +1273,12 @@
     q.tonsPerDie = num("tonsPerDie");
     q.totalTons = q.dieQty * q.tonsPerDie;
 
-    // LME-indexed aluminum pricing
+    // LME-indexed aluminum pricing — premium tuned to hit ~45% gross margin
     q.lmePrice = num("lmePrice");
-    q.conversionPremium = 1000;
+    q.conversionPremium = 2300;
     q.alSellPrice = q.lmePrice + q.conversionPremium;
     q.alRevenue = q.alSellPrice * q.totalTons;
+    q.productionGrossMargin = (q.conversionPremium / q.alSellPrice) * 100;
 
     // Complexity + machining
     q.complexity = calcComplexity();
@@ -1500,12 +1509,17 @@
           <div class="metric-card">
             <div class="metric-label">Conversion Premium</div>
             <div class="metric-value">${USD(q.conversionPremium)}<span style="font-size:0.85rem;color:#94a3b8"> / MT</span></div>
-            <div class="metric-sub">Standard extrusion margin</div>
+            <div class="metric-sub">Targets ~45% gross margin</div>
           </div>
           <div class="metric-card accent">
             <div class="metric-label">Extruded Sell Price</div>
             <div class="metric-value">${USD(q.alSellPrice)}<span style="font-size:0.85rem;color:#94a3b8"> / MT</span></div>
             <div class="metric-sub">LME + premium</div>
+          </div>
+          <div class="metric-card accent">
+            <div class="metric-label">Production Gross Margin</div>
+            <div class="metric-value">${q.productionGrossMargin.toFixed(1)}<span style="font-size:0.85rem;color:#94a3b8"> %</span></div>
+            <div class="metric-sub">Premium ÷ sell price</div>
           </div>
           <div class="metric-card accent">
             <div class="metric-label">Total Aluminum Revenue</div>
