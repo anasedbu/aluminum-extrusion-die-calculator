@@ -320,6 +320,91 @@
     border: 1px solid #334155;
   }
 
+  /* ============ IMAGE ANALYSIS ============ */
+  .analysis-panel {
+    margin-top: 1rem;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .analysis-panel.busy { border-color: #3B73B9; }
+  .analysis-panel.done { border-color: #22c55e; background: rgba(34,197,94,0.04); }
+  .analysis-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .spinner {
+    width: 22px; height: 22px;
+    border: 3px solid #334155;
+    border-top-color: #3B73B9;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .analysis-step {
+    color: #5B93D9;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .analysis-progress {
+    height: 6px;
+    background: #1e293b;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 0.5rem 0 1rem;
+  }
+  .analysis-progress > div {
+    height: 100%;
+    background: linear-gradient(90deg, #3B73B9, #5B93D9);
+    transition: width 0.4s ease;
+  }
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  .analysis-stat {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 0.75rem;
+    border-left: 3px solid #3B73B9;
+  }
+  .analysis-stat .stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .analysis-stat .stat-value {
+    font-size: 1rem;
+    color: #f1f5f9;
+    font-weight: 700;
+    margin-top: 0.25rem;
+  }
+  .analysis-stat .stat-sub {
+    font-size: 0.7rem;
+    color: #64748b;
+    margin-top: 0.15rem;
+  }
+  .complexity-pill {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .complexity-pill.high { background: #c2410c; color: #fed7aa; }
+  .complexity-pill.very-high { background: #b91c1c; color: #fecaca; }
+  .complexity-pill.extreme { background: #7f1d1d; color: #fee2e2; }
+
   /* ============ RESULTS DASHBOARD ============ */
   .results-grid {
     display: grid;
@@ -527,6 +612,18 @@
         <p>PNG, JPG, SVG — cross-section drawing of your custom profile</p>
         <img id="uploadPreview" class="upload-preview" style="display:none;" alt="Custom profile preview">
       </label>
+
+      <div id="analysisPanel" class="analysis-panel" style="display:none;">
+        <div class="analysis-header">
+          <div class="spinner" id="analysisSpinner"></div>
+          <div>
+            <div class="analysis-step" id="analysisStep">Initializing…</div>
+            <div style="font-size:0.8rem;color:#64748b">Custom profiles require detailed engineering review — we run a generous, conservative estimate to protect against scope surprises.</div>
+          </div>
+        </div>
+        <div class="analysis-progress"><div id="analysisBar" style="width:0%"></div></div>
+        <div id="analysisResults" style="display:none;"></div>
+      </div>
     </div>
 
     <div class="step-actions">
@@ -990,8 +1087,175 @@
     step: 1,
     shape: null,
     shapeType: null,
-    customImage: null
+    customImage: null,
+    customAnalysis: null
   };
+
+  /* ============ IMAGE ANALYSIS ============ */
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  function runImageAnalysis(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const SIZE = 220;
+          const canvas = document.createElement("canvas");
+          canvas.width = SIZE; canvas.height = SIZE;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, SIZE, SIZE);
+          ctx.drawImage(img, 0, 0, SIZE, SIZE);
+          const data = ctx.getImageData(0, 0, SIZE, SIZE).data;
+
+          const gray = new Uint8Array(SIZE * SIZE);
+          for (let i = 0; i < gray.length; i++) {
+            const idx = i * 4;
+            gray[i] = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          }
+
+          let edges = 0, dark = 0;
+          let minX = SIZE, maxX = 0, minY = SIZE, maxY = 0;
+          for (let y = 1; y < SIZE - 1; y++) {
+            for (let x = 1; x < SIZE - 1; x++) {
+              const i = y * SIZE + x;
+              const dx = Math.abs(gray[i + 1] - gray[i - 1]);
+              const dy = Math.abs(gray[i + SIZE] - gray[i - SIZE]);
+              if (dx + dy > 70) edges++;
+              if (gray[i] < 150) {
+                dark++;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+              }
+            }
+          }
+
+          const total = (SIZE - 2) * (SIZE - 2);
+          const edgeDensity = edges / total;
+          const fillDensity = dark / total;
+          const bboxW = Math.max(1, maxX - minX);
+          const bboxH = Math.max(1, maxY - minY);
+          const bboxArea = bboxW * bboxH;
+          const compactness = bboxArea > 0 ? dark / bboxArea : 0;
+          const aspectRatio = bboxW / bboxH;
+
+          // Generous classification — bias upward for safety
+          let level = "high", machMult = 1.45, reviewFee = 1500, extraDays = 7, contingency = 0.20;
+          if (edgeDensity > 0.07 || fillDensity > 0.40 || compactness < 0.55) {
+            level = "very-high"; machMult = 1.70; reviewFee = 2200; extraDays = 12; contingency = 0.28;
+          }
+          if (edgeDensity > 0.13 || fillDensity > 0.55 || compactness < 0.40) {
+            level = "extreme"; machMult = 2.00; reviewFee = 3000; extraDays = 18; contingency = 0.35;
+          }
+          // Estimated feature count proxy from edge density
+          const estFeatures = Math.round(edges / 60);
+
+          resolve({
+            edgeDensity, fillDensity, compactness, aspectRatio,
+            edges, estFeatures, bboxW, bboxH,
+            level, machMult, reviewFee, extraDays, contingency
+          });
+        } catch (e) { reject(e); }
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+
+  async function analyzeUploadedImage(dataUrl) {
+    const panel = document.getElementById("analysisPanel");
+    const stepEl = document.getElementById("analysisStep");
+    const bar = document.getElementById("analysisBar");
+    const spinner = document.getElementById("analysisSpinner");
+    const resultsDiv = document.getElementById("analysisResults");
+
+    panel.style.display = "block";
+    panel.classList.remove("done");
+    panel.classList.add("busy");
+    spinner.style.display = "block";
+    resultsDiv.style.display = "none";
+
+    const steps = [
+      { msg: "Reading uploaded image data…",                pct: 15 },
+      { msg: "Converting to grayscale & detecting edges…",  pct: 35 },
+      { msg: "Mapping cross-section topology…",             pct: 55 },
+      { msg: "Estimating feature count & wall complexity…", pct: 72 },
+      { msg: "Calculating generous machining premium…",     pct: 88 },
+      { msg: "Finalizing engineering review estimate…",     pct: 100 }
+    ];
+
+    let analysis = null;
+    for (let i = 0; i < steps.length; i++) {
+      stepEl.textContent = steps[i].msg;
+      bar.style.width = steps[i].pct + "%";
+      if (i === 1) {
+        // Run actual pixel analysis during the "edges" step
+        analysis = await runImageAnalysis(dataUrl);
+      }
+      await sleep(450 + Math.random() * 350);
+    }
+
+    state.customAnalysis = analysis;
+    spinner.style.display = "none";
+    panel.classList.remove("busy");
+    panel.classList.add("done");
+    stepEl.textContent = "✓ Analysis complete — generous estimate ready";
+
+    const levelLabel = { high: "High", "very-high": "Very High", extreme: "Extreme" }[analysis.level];
+    resultsDiv.style.display = "block";
+    resultsDiv.innerHTML = `
+      <div style="margin:0.75rem 0 0.5rem;color:#e2e8f0;font-size:0.9rem">
+        <strong>Detected complexity:</strong> <span class="complexity-pill ${analysis.level}">${levelLabel}</span>
+      </div>
+      <div class="analysis-grid">
+        <div class="analysis-stat">
+          <div class="stat-label">Edge Density</div>
+          <div class="stat-value">${(analysis.edgeDensity * 100).toFixed(2)}%</div>
+          <div class="stat-sub">~${analysis.estFeatures} features detected</div>
+        </div>
+        <div class="analysis-stat">
+          <div class="stat-label">Fill Density</div>
+          <div class="stat-value">${(analysis.fillDensity * 100).toFixed(1)}%</div>
+          <div class="stat-sub">Cross-section coverage</div>
+        </div>
+        <div class="analysis-stat">
+          <div class="stat-label">Compactness</div>
+          <div class="stat-value">${(analysis.compactness * 100).toFixed(1)}%</div>
+          <div class="stat-sub">Lower = more hollows / cuts</div>
+        </div>
+        <div class="analysis-stat">
+          <div class="stat-label">Aspect Ratio</div>
+          <div class="stat-value">${analysis.aspectRatio.toFixed(2)} : 1</div>
+          <div class="stat-sub">${analysis.bboxW} × ${analysis.bboxH} px bbox</div>
+        </div>
+        <div class="analysis-stat">
+          <div class="stat-label">Machining Multiplier</div>
+          <div class="stat-value">×${analysis.machMult.toFixed(2)}</div>
+          <div class="stat-sub">Applied to base machining</div>
+        </div>
+        <div class="analysis-stat">
+          <div class="stat-label">Engineering Review Fee</div>
+          <div class="stat-value">$${analysis.reviewFee.toLocaleString()}</div>
+          <div class="stat-sub">Custom CAD + DFM review</div>
+        </div>
+        <div class="analysis-stat">
+          <div class="stat-label">Lead Time Buffer</div>
+          <div class="stat-value">+${analysis.extraDays} days</div>
+          <div class="stat-sub">Added to standard lead time</div>
+        </div>
+        <div class="analysis-stat">
+          <div class="stat-label">Contingency</div>
+          <div class="stat-value">+${(analysis.contingency * 100).toFixed(0)}%</div>
+          <div class="stat-sub">Safety buffer on subtotal</div>
+        </div>
+      </div>
+      <div class="alert alert-warn" style="margin-top:1rem">
+        ⚠ This is a <strong>generous, high-side estimate</strong>. Custom profiles often surface unforeseen features during engineering review (asymmetric walls, sharp internal corners, thin tongues). The premium and contingency are sized to absorb these without re-quoting the customer.
+      </div>
+    `;
+  }
 
   /* ============ STEP NAVIGATION ============ */
   function goToStep(n) {
@@ -1054,6 +1318,10 @@
         preview.src = ev.target.result;
         preview.style.display = "block";
         selectShape("upload");
+        analyzeUploadedImage(ev.target.result).catch(err => {
+          console.error("Analysis failed:", err);
+          document.getElementById("analysisStep").textContent = "Analysis failed — falling back to default custom premium.";
+        });
       };
       reader.readAsDataURL(file);
     });
@@ -1296,19 +1564,46 @@
     q.tolStraight = num("tolStraight");
     q.tolTwist = num("tolTwist");
 
+    // Custom-profile premium (only when uploaded image was analyzed)
+    const ca = state.customAnalysis;
+    const isCustomUpload = state.shape && state.shape.id === "upload" && ca;
+    q.isCustomUpload = !!isCustomUpload;
+    if (isCustomUpload) {
+      // Force complexity to max and apply generous multiplier on machining
+      q.complexity = 5;
+      q.cuttingMethod = "CNC + Sink EDM (heavy work)";
+      q.cuttingBadge = "badge-red";
+      q.customMachiningMultiplier = ca.machMult;
+      q.customReviewFee = ca.reviewFee;
+      q.customLeadDays = ca.extraDays;
+      q.customContingencyPct = ca.contingency;
+      q.machiningCost = q.machiningCost * ca.machMult;
+      q.customComplexityLevel = ca.level;
+      q.customEdgeDensity = ca.edgeDensity;
+      q.customFillDensity = ca.fillDensity;
+      q.customEstFeatures = ca.estFeatures;
+    } else {
+      q.customMachiningMultiplier = 1;
+      q.customReviewFee = 0;
+      q.customLeadDays = 0;
+      q.customContingencyPct = 0;
+    }
+
     // Costs per die
     q.steelCost = q.dieWeight * q.steelPricePerKg;
     q.nitrideCost = q.dieWeight * q.nitrideCostPerKg;
     q.pvdCostLine = q.pvdCost;
-    q.perDieCost = q.steelCost + q.machiningCost + q.nitrideCost + q.pvdCostLine;
+    const subBeforeContingency = q.steelCost + q.machiningCost + q.nitrideCost + q.pvdCostLine + q.customReviewFee;
+    q.contingencyCost = subBeforeContingency * q.customContingencyPct;
+    q.perDieCost = subBeforeContingency + q.contingencyCost;
 
     // Total
     q.totalCost = q.perDieCost * q.dieQty;
 
     // Lead time
     const lt = leadTime(q.complexity, q.shapeType === "hollow", q.pvdType === "none", q.dieQty);
-    q.leadLow = lt.low;
-    q.leadHigh = lt.high;
+    q.leadLow = lt.low + q.customLeadDays;
+    q.leadHigh = lt.high + q.customLeadDays;
 
     // Die life estimate
     const baseLife = q.shapeType === "hollow" ? 30 : q.shapeType === "semi-hollow" ? 40 : 50;
@@ -1401,6 +1696,36 @@
         </div>
       </div>
 
+      ${q.isCustomUpload ? `
+      <div class="panel">
+        <h3>Custom Profile — Image Analysis Basis</h3>
+        <div class="alert alert-warn">
+          ⚠ This estimate uses a <strong>generous, high-side methodology</strong> because the profile was uploaded as an image and has not yet undergone formal engineering review.
+        </div>
+        <div class="results-grid">
+          <div class="metric-card warn">
+            <div class="metric-label">Detected Complexity</div>
+            <div class="metric-value" style="font-size:1.1rem">${q.customComplexityLevel.replace("-", " ").toUpperCase()}</div>
+            <div class="metric-sub">~${q.customEstFeatures} features detected</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Edge Density</div>
+            <div class="metric-value">${(q.customEdgeDensity * 100).toFixed(2)}<span style="font-size:0.85rem;color:#94a3b8"> %</span></div>
+            <div class="metric-sub">Profile feature richness</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Machining Multiplier</div>
+            <div class="metric-value">×${q.customMachiningMultiplier.toFixed(2)}</div>
+            <div class="metric-sub">Applied to base cost</div>
+          </div>
+          <div class="metric-card warn">
+            <div class="metric-label">Contingency Buffer</div>
+            <div class="metric-value">+${(q.customContingencyPct * 100).toFixed(0)}<span style="font-size:0.85rem;color:#94a3b8"> %</span></div>
+            <div class="metric-sub">${USD(q.contingencyCost)} reserve / die</div>
+          </div>
+        </div>
+      </div>` : ""}
+
       <div class="panel">
         <h3>Tolerances Specified</h3>
         <div class="results-grid">
@@ -1444,6 +1769,15 @@
               <td>Tolerance surcharge <span style="color:#64748b">(${q.toleranceClass} class · ${q.surfaceFinish} finish)</span></td>
               <td class="cost">${USD(q.toleranceSurcharge)}</td>
             </tr>
+            ${q.isCustomUpload ? `
+            <tr>
+              <td>Custom profile machining premium <span style="color:#64748b">(×${q.customMachiningMultiplier.toFixed(2)} · ${q.customComplexityLevel})</span></td>
+              <td class="cost">${USD(q.machiningCost - q.baseMachiningCost - q.toleranceSurcharge)}</td>
+            </tr>
+            <tr>
+              <td>Engineering review fee <span style="color:#64748b">(custom CAD + DFM)</span></td>
+              <td class="cost">${USD(q.customReviewFee)}</td>
+            </tr>` : ""}
             <tr>
               <td>Nitriding <span style="color:#64748b">(${q.nitrideType})</span></td>
               <td class="cost">${USD(q.nitrideCost)}</td>
@@ -1452,6 +1786,11 @@
               <td>PVD coating <span style="color:#64748b">(${q.pvdType})</span></td>
               <td class="cost">${USD(q.pvdCostLine)}</td>
             </tr>
+            ${q.isCustomUpload ? `
+            <tr>
+              <td>Custom contingency <span style="color:#64748b">(+${(q.customContingencyPct * 100).toFixed(0)}% safety buffer)</span></td>
+              <td class="cost">${USD(q.contingencyCost)}</td>
+            </tr>` : ""}
             <tr>
               <td><strong>Subtotal per die</strong></td>
               <td class="cost">${USD(q.perDieCost)}</td>
