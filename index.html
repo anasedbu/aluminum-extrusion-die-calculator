@@ -914,6 +914,35 @@
       </div>
     </div>
 
+    <div class="panel">
+      <h3>Aluminum Pricing — LME-Indexed</h3>
+      <div class="alert alert-info">
+        Extruded aluminum is priced as <strong>LME 3-Month + USD 1,000 / MT conversion premium</strong>. Update the LME value to reflect today's London Metal Exchange quote.
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="lmePrice">LME 3-Month Aluminum (USD / MT)</label>
+          <input type="number" id="lmePrice" min="0" step="1" value="2500">
+          <span class="hint">Check lme.com for the latest 3-month price.</span>
+        </div>
+        <div class="field">
+          <label>Conversion Premium (Fixed)</label>
+          <div class="computed">$1,000.00 / MT</div>
+          <span class="hint">Standard extrusion conversion margin.</span>
+        </div>
+        <div class="field">
+          <label>Extruded Aluminum Sell Price</label>
+          <div class="computed" id="alSellDisplay">— / MT</div>
+          <span class="hint">LME + premium = customer price.</span>
+        </div>
+        <div class="field">
+          <label>Total Aluminum Revenue</label>
+          <div class="computed" id="alRevenueDisplay">—</div>
+          <span class="hint">Sell price × total tons.</span>
+        </div>
+      </div>
+    </div>
+
     <div class="step-actions">
       <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
       <button class="btn btn-primary" onclick="calculateQuote()">Calculate Quote →</button>
@@ -1118,7 +1147,16 @@
 
     // Total run
     const dies = num("dieQty"), tpd = num("tonsPerDie");
-    document.getElementById("totalRunDisplay").textContent = (dies * tpd).toFixed(1) + " tonnes";
+    const totalTons = dies * tpd;
+    document.getElementById("totalRunDisplay").textContent = totalTons.toFixed(1) + " tonnes";
+
+    // LME-indexed aluminum pricing
+    const lme = num("lmePrice");
+    const sellPrice = lme + 1000;
+    const sellEl = document.getElementById("alSellDisplay");
+    if (sellEl) sellEl.textContent = "$" + sellPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " / MT";
+    const revEl = document.getElementById("alRevenueDisplay");
+    if (revEl) revEl.textContent = "$" + (sellPrice * totalTons).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
     // Tolerance cost preview
     const tolEl = document.getElementById("tolCostDisplay");
@@ -1227,6 +1265,12 @@
     q.tonsPerDie = num("tonsPerDie");
     q.totalTons = q.dieQty * q.tonsPerDie;
 
+    // LME-indexed aluminum pricing
+    q.lmePrice = num("lmePrice");
+    q.conversionPremium = 1000;
+    q.alSellPrice = q.lmePrice + q.conversionPremium;
+    q.alRevenue = q.alSellPrice * q.totalTons;
+
     // Complexity + machining
     q.complexity = calcComplexity();
     const m = machiningByScore(q.complexity);
@@ -1260,6 +1304,16 @@
     // Die life estimate
     const baseLife = q.shapeType === "hollow" ? 30 : q.shapeType === "semi-hollow" ? 40 : 50;
     q.estDieLife = Math.round(baseLife / (q.complexity / 2));
+
+    // MOQ economics — break-even tonnage to recover die cost via conversion margin
+    q.breakEvenMOQ = q.totalCost / q.conversionPremium;
+    const perShipmentBase = 0.5;
+    q.shipmentMOQ = Math.max(perShipmentBase, q.breakEvenMOQ * 0.05);
+    q.minAnnualMOQ = q.breakEvenMOQ * 1.5;
+    q.moqMet = q.totalTons >= q.breakEvenMOQ;
+    q.moqMargin = q.totalTons - q.breakEvenMOQ;
+    q.dieCostPerTon = q.totalCost / Math.max(0.001, q.totalTons);
+    q.netConversionMargin = q.conversionPremium - q.dieCostPerTon;
 
     return q;
   }
@@ -1436,6 +1490,67 @@
       </div>
 
       <div class="panel">
+        <h3>Aluminum Pricing — LME-Indexed</h3>
+        <div class="results-grid">
+          <div class="metric-card">
+            <div class="metric-label">LME 3-Month Price</div>
+            <div class="metric-value">${USD(q.lmePrice)}<span style="font-size:0.85rem;color:#94a3b8"> / MT</span></div>
+            <div class="metric-sub">London Metal Exchange</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Conversion Premium</div>
+            <div class="metric-value">${USD(q.conversionPremium)}<span style="font-size:0.85rem;color:#94a3b8"> / MT</span></div>
+            <div class="metric-sub">Standard extrusion margin</div>
+          </div>
+          <div class="metric-card accent">
+            <div class="metric-label">Extruded Sell Price</div>
+            <div class="metric-value">${USD(q.alSellPrice)}<span style="font-size:0.85rem;color:#94a3b8"> / MT</span></div>
+            <div class="metric-sub">LME + premium</div>
+          </div>
+          <div class="metric-card accent">
+            <div class="metric-label">Total Aluminum Revenue</div>
+            <div class="metric-value">${USD(q.alRevenue)}</div>
+            <div class="metric-sub">${q.totalTons.toFixed(1)} t × sell price</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Minimum Order Quantity (MOQ) — Production Viability</h3>
+        ${q.moqMet
+          ? `<div class="alert alert-info">✓ Planned run of <strong>${q.totalTons.toFixed(1)} t</strong> exceeds break-even MOQ by <strong>${q.moqMargin.toFixed(1)} t</strong>. Production is economically viable.</div>`
+          : `<div class="alert alert-warn">⚠ Planned run of <strong>${q.totalTons.toFixed(1)} t</strong> is <strong>${Math.abs(q.moqMargin).toFixed(1)} t below</strong> break-even. Increase quantity or re-negotiate die cost.</div>`}
+        <div class="results-grid">
+          <div class="metric-card ${q.moqMet ? 'accent' : 'warn'}">
+            <div class="metric-label">Break-Even MOQ</div>
+            <div class="metric-value">${q.breakEvenMOQ.toFixed(2)}<span style="font-size:0.85rem;color:#94a3b8"> tonnes</span></div>
+            <div class="metric-sub">Die cost ÷ $${q.conversionPremium}/MT margin</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Recommended Shipment MOQ</div>
+            <div class="metric-value">${q.shipmentMOQ.toFixed(2)}<span style="font-size:0.85rem;color:#94a3b8"> tonnes</span></div>
+            <div class="metric-sub">Per delivery batch</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Healthy Annual MOQ</div>
+            <div class="metric-value">${q.minAnnualMOQ.toFixed(2)}<span style="font-size:0.85rem;color:#94a3b8"> tonnes</span></div>
+            <div class="metric-sub">1.5× break-even (target)</div>
+          </div>
+          <div class="metric-card ${q.netConversionMargin > 0 ? 'accent' : 'warn'}">
+            <div class="metric-label">Net Conversion Margin</div>
+            <div class="metric-value">${USD(q.netConversionMargin)}<span style="font-size:0.85rem;color:#94a3b8"> / MT</span></div>
+            <div class="metric-sub">After die amortization</div>
+          </div>
+        </div>
+        <div style="margin-top:1rem;font-size:0.85rem;color:#94a3b8">
+          <strong style="color:#5B93D9">How this is calculated:</strong>
+          Break-even MOQ = Total die cost (${USD(q.totalCost)}) ÷ Conversion premium ($${q.conversionPremium}/MT).
+          Below this tonnage, the conversion margin does not cover die manufacturing.
+          The "healthy" target adds 50% headroom for press downtime, scrap, and overhead.
+        </div>
+      </div>
+
+      <div class="panel">
         <h3>Production Insights</h3>
         <div class="results-grid">
           <div class="metric-card">
@@ -1504,7 +1619,7 @@
     bindRadioGroup("nitrideGroup", "nitride");
     bindRadioGroup("pvdGroup", "pvd");
 
-    ["container","dieThickness","cavities","alloy","dieQty","tonsPerDie","voidW","voidH","tmin","tmax","width","height","toleranceClass","surfaceFinish","tolCrossSection","tolWall","tolLength","tolStraight","tolTwist"].forEach(id => {
+    ["container","dieThickness","cavities","alloy","dieQty","tonsPerDie","voidW","voidH","tmin","tmax","width","height","toleranceClass","surfaceFinish","tolCrossSection","tolWall","tolLength","tolStraight","tolTwist","lmePrice"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", updateDerived);
       if (el) el.addEventListener("change", updateDerived);
