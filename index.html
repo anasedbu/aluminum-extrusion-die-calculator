@@ -617,6 +617,58 @@
     </div>
 
     <div class="panel">
+      <h3>Tolerances & Surface Finish</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label for="toleranceClass">Tolerance Class</label>
+          <select id="toleranceClass">
+            <option value="standard" selected>Standard — EN 12020-2 / ASTM B221</option>
+            <option value="precision">Precision — Tightened (×0.5 of standard)</option>
+            <option value="ultra">Ultra-Precision — Aerospace / Medical (×0.25)</option>
+          </select>
+          <span class="hint">Tighter tolerances increase die machining cost.</span>
+        </div>
+        <div class="field">
+          <label for="tolCrossSection">Cross-Section Tolerance (± mm)</label>
+          <input type="number" id="tolCrossSection" min="0.05" step="0.05" value="0.20">
+          <span class="hint">On overall width / height.</span>
+        </div>
+        <div class="field">
+          <label for="tolWall">Wall Thickness Tolerance (± mm)</label>
+          <input type="number" id="tolWall" min="0.02" step="0.01" value="0.15">
+          <span class="hint">±10% of nominal is typical.</span>
+        </div>
+        <div class="field">
+          <label for="tolLength">Length Tolerance (mm / m)</label>
+          <input type="number" id="tolLength" min="0.5" step="0.5" value="3.0">
+        </div>
+        <div class="field">
+          <label for="tolStraight">Straightness (mm / m)</label>
+          <input type="number" id="tolStraight" min="0.1" step="0.1" value="1.5">
+          <span class="hint">Bow / sweep over length.</span>
+        </div>
+        <div class="field">
+          <label for="tolTwist">Twist (° / m)</label>
+          <input type="number" id="tolTwist" min="0.05" step="0.05" value="0.50">
+        </div>
+        <div class="field">
+          <label for="surfaceFinish">Surface Finish Requirement</label>
+          <select id="surfaceFinish">
+            <option value="mill" selected>Mill Finish (as extruded)</option>
+            <option value="anodize">Anodize-Ready</option>
+            <option value="paint">Paint / Powder Coat</option>
+            <option value="aerospace">Aerospace Grade (no defects)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tolerance Cost Impact</label>
+          <div class="computed" id="tolCostDisplay">+ $0</div>
+          <span class="hint">Added to machining cost.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
       <h3>Auto-Calculated</h3>
       <div class="form-grid">
         <div class="field">
@@ -1067,6 +1119,15 @@
     // Total run
     const dies = num("dieQty"), tpd = num("tonsPerDie");
     document.getElementById("totalRunDisplay").textContent = (dies * tpd).toFixed(1) + " tonnes";
+
+    // Tolerance cost preview
+    const tolEl = document.getElementById("tolCostDisplay");
+    if (tolEl) {
+      const previewScore = calcComplexity();
+      const previewBase = machiningByScore(previewScore).cost;
+      const previewSurcharge = toleranceSurcharge(previewBase);
+      tolEl.textContent = "+ $" + previewSurcharge.toFixed(2);
+    }
   }
 
   /* ============ CALCULATION ENGINE ============ */
@@ -1092,6 +1153,14 @@
       5: { cost: 1350, method: "CNC + Sink EDM (heavy work)", badge: "badge-red"    }
     };
     return table[score];
+  }
+
+  function toleranceSurcharge(machiningCost) {
+    const tolClass = document.getElementById("toleranceClass") ? document.getElementById("toleranceClass").value : "standard";
+    const surface = document.getElementById("surfaceFinish") ? document.getElementById("surfaceFinish").value : "mill";
+    const classMult = { standard: 0, precision: 0.25, ultra: 0.55 }[tolClass] || 0;
+    const surfaceMult = { mill: 0, anodize: 0.05, paint: 0.03, aerospace: 0.20 }[surface] || 0;
+    return machiningCost * (classMult + surfaceMult);
   }
 
   function leadTime(score, hollow, pvdNone, qty) {
@@ -1161,9 +1230,18 @@
     // Complexity + machining
     q.complexity = calcComplexity();
     const m = machiningByScore(q.complexity);
-    q.machiningCost = m.cost;
+    q.baseMachiningCost = m.cost;
+    q.toleranceSurcharge = toleranceSurcharge(m.cost);
+    q.machiningCost = m.cost + q.toleranceSurcharge;
     q.cuttingMethod = m.method;
     q.cuttingBadge = m.badge;
+    q.toleranceClass = document.getElementById("toleranceClass").value;
+    q.surfaceFinish = document.getElementById("surfaceFinish").value;
+    q.tolCrossSection = num("tolCrossSection");
+    q.tolWall = num("tolWall");
+    q.tolLength = num("tolLength");
+    q.tolStraight = num("tolStraight");
+    q.tolTwist = num("tolTwist");
 
     // Costs per die
     q.steelCost = q.dieWeight * q.steelPricePerKg;
@@ -1261,6 +1339,30 @@
       </div>
 
       <div class="panel">
+        <h3>Tolerances Specified</h3>
+        <div class="results-grid">
+          <div class="metric-card">
+            <div class="metric-label">Tolerance Class</div>
+            <div class="metric-value" style="font-size:1rem">${q.toleranceClass.charAt(0).toUpperCase() + q.toleranceClass.slice(1)}</div>
+            <div class="metric-sub">Surface: ${q.surfaceFinish}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Cross-Section / Wall</div>
+            <div class="metric-value" style="font-size:1rem">±${q.tolCrossSection} / ±${q.tolWall} mm</div>
+            <div class="metric-sub">Overall vs wall thickness</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Length / Straightness</div>
+            <div class="metric-value" style="font-size:1rem">${q.tolLength} / ${q.tolStraight} mm/m</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Twist</div>
+            <div class="metric-value" style="font-size:1rem">${q.tolTwist}° / m</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
         <h3>Cost Breakdown (per die)</h3>
         <table class="breakdown-table">
           <thead>
@@ -1273,7 +1375,11 @@
             </tr>
             <tr>
               <td>Machining <span style="color:#64748b">(${q.cuttingMethod})</span></td>
-              <td class="cost">${USD(q.machiningCost)}</td>
+              <td class="cost">${USD(q.baseMachiningCost)}</td>
+            </tr>
+            <tr>
+              <td>Tolerance surcharge <span style="color:#64748b">(${q.toleranceClass} class · ${q.surfaceFinish} finish)</span></td>
+              <td class="cost">${USD(q.toleranceSurcharge)}</td>
             </tr>
             <tr>
               <td>Nitriding <span style="color:#64748b">(${q.nitrideType})</span></td>
@@ -1398,7 +1504,7 @@
     bindRadioGroup("nitrideGroup", "nitride");
     bindRadioGroup("pvdGroup", "pvd");
 
-    ["container","dieThickness","cavities","alloy","dieQty","tonsPerDie","voidW","voidH","tmin","tmax","width","height"].forEach(id => {
+    ["container","dieThickness","cavities","alloy","dieQty","tonsPerDie","voidW","voidH","tmin","tmax","width","height","toleranceClass","surfaceFinish","tolCrossSection","tolWall","tolLength","tolStraight","tolTwist"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", updateDerived);
       if (el) el.addEventListener("change", updateDerived);
