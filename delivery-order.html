@@ -810,41 +810,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     color: var(--brand-dark);
     text-transform: uppercase;
     letter-spacing: 0.4px;
-    margin-bottom: 16px;
+    margin-bottom: 44px;
   }
   .sig-line-row {
     display: flex;
     align-items: flex-end;
     gap: 10px;
-    margin-bottom: 18px;
   }
-  .sig-line-row .sig-lbl {
-    font-size: 12px;
-    color: var(--muted);
-    white-space: nowrap;
-    min-width: 66px;
-    padding-bottom: 3px;
-  }
-  .sig-input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    border-bottom: 1px solid var(--text);
-    background: transparent;
-    font-size: 13px;
-    padding: 2px 4px;
-    color: var(--text);
-    font-family: inherit;
-  }
-  .sig-input:focus { outline: none; border-bottom-color: var(--brand); }
   .sig-line {
     flex: 1;
     border-bottom: 1px solid var(--text);
-    height: 24px;
+    height: 36px;
   }
   @media print {
     .sig-area { display: flex !important; page-break-inside: avoid; margin-top: 44px; }
-    .sig-input { border-bottom: 1px solid #000; -webkit-print-color-adjust: exact; }
     .sig-line { border-bottom: 1px solid #000; }
   }
 </style>
@@ -1048,23 +1027,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <div class="spacer"></div>
       <button class="danger" onclick="clearQuote()">Clear Quote</button>
     </div>
-    <div class="print-block footer-note">
-      Thank you for your business. Prices in AED. VAT calculated at <span id="printVatNote"></span>%. Goods received as listed above in good condition.
-    </div>
-
     <!-- ================= SIGNATURES (screen + print) ================= -->
     <div class="sig-area" id="signatureArea">
       <div class="sig-box">
-        <div class="sig-role">Received by — Customer</div>
-        <div class="sig-line-row"><span class="sig-lbl">Name</span><input type="text" class="sig-input" id="sigCustomerName" autocomplete="off" oninput="saveSettings()"></div>
-        <div class="sig-line-row"><span class="sig-lbl">Signature</span><span class="sig-line"></span></div>
-        <div class="sig-line-row"><span class="sig-lbl">Date</span><input type="text" class="sig-input" id="sigCustomerDate" placeholder="DD / MM / YYYY" autocomplete="off" oninput="saveSettings()"></div>
+        <div class="sig-role">Received By</div>
+        <div class="sig-line-row"><span class="sig-line"></span></div>
       </div>
       <div class="sig-box">
-        <div class="sig-role">Delivered by — Accountant / Sales</div>
-        <div class="sig-line-row"><span class="sig-lbl">Name</span><input type="text" class="sig-input" id="sigSellerName" autocomplete="off" oninput="saveSettings()"></div>
-        <div class="sig-line-row"><span class="sig-lbl">Signature</span><span class="sig-line"></span></div>
-        <div class="sig-line-row"><span class="sig-lbl">Date</span><input type="text" class="sig-input" id="sigSellerDate" placeholder="DD / MM / YYYY" autocomplete="off" oninput="saveSettings()"></div>
+        <div class="sig-role">Delivered By</div>
+        <div class="sig-line-row"><span class="sig-line"></span></div>
       </div>
     </div>
   </section>
@@ -1673,7 +1644,6 @@ function init() {
   updateQuotationBadge();
   // Show the next quote number upfront when starting with a blank Quote # field.
   if (!document.getElementById('quoteNo').value.trim()) prefillNextQuoteNumber();
-  fillSignatureDates();   // default both signature dates to today (only if blank)
   updateShareButton();
 
   document.getElementById('alPrice').addEventListener('input', onSettingsChange);
@@ -1755,10 +1725,6 @@ function loadSettings() {
       if (o.alPrice != null)  document.getElementById('alPrice').value  = o.alPrice;
       if (o.vatRate != null)  document.getElementById('vatRate').value  = o.vatRate;
       if (o.quoteNo)          document.getElementById('quoteNo').value  = o.quoteNo;
-      if (o.sigCustomerName != null) document.getElementById('sigCustomerName').value = o.sigCustomerName;
-      if (o.sigCustomerDate != null) document.getElementById('sigCustomerDate').value = o.sigCustomerDate;
-      if (o.sigSellerName   != null) document.getElementById('sigSellerName').value   = o.sigSellerName;
-      if (o.sigSellerDate   != null) document.getElementById('sigSellerDate').value   = o.sigSellerDate;
       if (o.selectedCustomerIdx != null && o.selectedCustomerIdx >= 0 && o.selectedCustomerIdx < customers.length) {
         selectCustomer(o.selectedCustomerIdx);
       }
@@ -1772,10 +1738,6 @@ function saveSettings() {
     alPrice: parseFloat(document.getElementById('alPrice').value),
     vatRate: parseFloat(document.getElementById('vatRate').value),
     quoteNo: document.getElementById('quoteNo').value,
-    sigCustomerName: document.getElementById('sigCustomerName').value,
-    sigCustomerDate: document.getElementById('sigCustomerDate').value,
-    sigSellerName: document.getElementById('sigSellerName').value,
-    sigSellerDate: document.getElementById('sigSellerDate').value,
     selectedCustomerIdx: idx
   }));
 }
@@ -2642,20 +2604,6 @@ function nextQuoteNumber() {
 
 // Show the next auto quote number in the Quote # field for a fresh quotation,
 // so the working number is visible (and prints) before the quote is saved.
-// Today's date as DD/MM/YYYY for the signature date fields.
-function todayDMY() {
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
-}
-// Fill any empty signature date field with today's date (never overwrites a typed/saved value).
-function fillSignatureDates(force) {
-  const today = todayDMY();
-  ['sigCustomerDate', 'sigSellerDate'].forEach(id => {
-    const el = document.getElementById(id);
-    if (force || !el.value.trim()) el.value = today;
-  });
-}
 function prefillNextQuoteNumber() {
   document.getElementById('quoteNo').value = nextQuoteNumber();
   saveSettings();
@@ -2688,12 +2636,6 @@ function saveCurrentQuotation(silent) {
   rec.alPrice   = document.getElementById('alPrice').value;
   rec.vatRate   = document.getElementById('vatRate').value;
   rec.quoteNo   = document.getElementById('quoteNo').value;
-  rec.sig = {
-    customerName: document.getElementById('sigCustomerName').value,
-    customerDate: document.getElementById('sigCustomerDate').value,
-    sellerName:   document.getElementById('sigSellerName').value,
-    sellerDate:   document.getElementById('sigSellerDate').value
-  };
   rec.lines     = JSON.parse(JSON.stringify(quote));
 
   if (!existing) {
@@ -2730,12 +2672,6 @@ function loadQuotation(id) {
   if (rec.alPrice != null) document.getElementById('alPrice').value = rec.alPrice;
   if (rec.vatRate != null) document.getElementById('vatRate').value = rec.vatRate;
   document.getElementById('quoteNo').value = rec.quoteNo || '';
-  const sig = rec.sig || {};
-  document.getElementById('sigCustomerName').value = sig.customerName || '';
-  document.getElementById('sigCustomerDate').value = sig.customerDate || '';
-  document.getElementById('sigSellerName').value   = sig.sellerName || '';
-  document.getElementById('sigSellerDate').value   = sig.sellerDate || '';
-  fillSignatureDates();   // default any blank date to today (keeps dates saved with the order)
 
   selectedCustomer = rec.customer ? JSON.parse(JSON.stringify(rec.customer)) : null;
   renderSelectedCustomer();
@@ -2794,9 +2730,6 @@ function goToNextQuotation() {
   currentQuotationId = null;
   document.getElementById('custLookup').value = '';
   clearCustomerDisplay();
-  // Reset per-order signature fields (keep the seller/accountant name — usually the same person)
-  document.getElementById('sigCustomerName').value = '';
-  fillSignatureDates(true);        // reset both signature dates to today
   prefillNextQuoteNumber();        // advance to the next number (+1) for the new quote
   renderQuote();
   updateQuotationBadge();
@@ -3193,56 +3126,23 @@ async function generatePdfBlob() {
   doc.text(fmtCommas(subtotalVat), colB, y, { align: 'right' });
   y += 8;
 
-  // ===== FOOTER (placed directly under the grand total, not at page bottom) =====
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...MUTED);
-  doc.text(
-    'Thank you for your business. Prices in AED. VAT calculated at ' + vat + '%. Goods received as listed above in good condition.',
-    pageW / 2,
-    y,
-    { align: 'center', maxWidth: contentW }
-  );
-
-  // ===== SIGNATURES (Customer / Receiver and Accountant / Seller) =====
-  const sigCN = (document.getElementById('sigCustomerName').value || '').trim();
-  const sigCD = (document.getElementById('sigCustomerDate').value || '').trim();
-  const sigSN = (document.getElementById('sigSellerName').value || '').trim();
-  const sigSD = (document.getElementById('sigSellerDate').value || '').trim();
-
+  // ===== SIGNATURES (Received By / Delivered By — signature line only) =====
   const sigGap = 14;
   const sigColW = (contentW - sigGap) / 2;
-  const sigY = Math.max(y + 10, pageH - M - 40);  // anchor near the bottom, but never on top of content
+  const sigY = Math.max(y + 8, pageH - M - 24);  // anchor near the bottom, but never on top of content
   const sigLeftX = M;
   const sigRightX = M + sigColW + sigGap;
 
-  function drawSigBlock(x, role, name, date) {
-    let yy = sigY;
+  function drawSigBlock(x, role) {
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(...BRAND_DARK);
-    doc.text(role, x, yy);
+    doc.text(role, x, sigY);
     doc.setDrawColor(...TEXT);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...TEXT);
-    // Name
-    yy += 10;
-    doc.text('Name:', x, yy);
-    doc.line(x + 13, yy + 1, x + sigColW, yy + 1);
-    if (name) doc.text(name, x + 15, yy);
-    // Signature
-    yy += 10;
-    doc.text('Signature:', x, yy);
-    doc.line(x + 19, yy + 1, x + sigColW, yy + 1);
-    // Date
-    yy += 10;
-    doc.text('Date:', x, yy);
-    doc.line(x + 13, yy + 1, x + sigColW, yy + 1);
-    if (date) doc.text(date, x + 15, yy);
+    doc.line(x, sigY + 16, x + sigColW, sigY + 16);  // line sits below the label, leaving room to sign
   }
-  drawSigBlock(sigLeftX,  'RECEIVED BY (CUSTOMER)',            sigCN, sigCD);
-  drawSigBlock(sigRightX, 'DELIVERED BY (ACCOUNTANT / SALES)', sigSN, sigSD);
+  drawSigBlock(sigLeftX,  'Received By');
+  drawSigBlock(sigRightX, 'Delivered By');
 
   return doc.output('blob');
 }
