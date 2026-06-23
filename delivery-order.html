@@ -1589,6 +1589,13 @@ const CUSTOMERS_KEY = 'alsahlawi_customers_v1';
 const QUOTATIONS_KEY = 'alsahlawi_deliveryorders_v1';
 const EMBEDDED_STAMP_KEY = 'alsahlawi_embedded_stamp_v1';
 
+// Safe localStorage wrappers. On file:// pages storage can be full (all the HTML
+// tools share one bucket) or blocked, and an unguarded read/write would throw and
+// abort startup before the lookups are wired up. These never throw.
+function lsGet(k)    { try { return window.localStorage.getItem(k); } catch(e) { return null; } }
+function lsSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch(e) { console.warn('Storage write failed (' + k + '); kept in memory only.', e); return false; } }
+function lsRemove(k) { try { window.localStorage.removeItem(k); } catch(e) {} }
+
 let catalog   = [];
 let customers = [];
 let quote = [];
@@ -1680,7 +1687,7 @@ function updateShareButton() {
 function loadCatalog() {
   catalog = [];
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = lsGet(STORAGE_KEY);
     if (stored) catalog = JSON.parse(stored);
   } catch(e) { catalog = []; }
   if (!Array.isArray(catalog)) catalog = [];
@@ -1718,13 +1725,13 @@ function loadCatalog() {
   }
 }
 function saveCatalog() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(catalog)); }
+  try { lsSet(STORAGE_KEY, JSON.stringify(catalog)); }
   catch(e) { console.warn('Catalog could not be saved to localStorage; keeping it in memory.', e); }
   updateStats();
   refreshTypeList();
 }
 function loadSettings() {
-  const s = localStorage.getItem(SETTINGS_KEY);
+  const s = lsGet(SETTINGS_KEY);
   if (s) {
     try {
       const o = JSON.parse(s);
@@ -1740,7 +1747,7 @@ function loadSettings() {
 }
 function saveSettings() {
   const idx = selectedCustomer ? customers.indexOf(selectedCustomer) : -1;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+  lsSet(SETTINGS_KEY, JSON.stringify({
     alPrice: parseFloat(document.getElementById('alPrice').value),
     vatRate: parseFloat(document.getElementById('vatRate').value),
     quoteNo: document.getElementById('quoteNo').value,
@@ -1752,7 +1759,7 @@ function saveSettings() {
 function loadCustomers() {
   customers = [];
   try {
-    const s = localStorage.getItem(CUSTOMERS_KEY);
+    const s = lsGet(CUSTOMERS_KEY);
     if (s) customers = JSON.parse(s);
   } catch(e) { customers = []; }
   if (!Array.isArray(customers)) customers = [];
@@ -1767,7 +1774,7 @@ function loadCustomers() {
   }
 }
 function saveCustomers() {
-  localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+  lsSet(CUSTOMERS_KEY, JSON.stringify(customers));
   document.getElementById('custCount').textContent = customers.length + ' customer' + (customers.length === 1 ? '' : 's');
 }
 
@@ -2067,7 +2074,7 @@ function deleteCustomer(idx) {
   toast('Customer deleted');
 }
 function loadLogo() {
-  const stored = localStorage.getItem(LOGO_KEY);
+  const stored = lsGet(LOGO_KEY);
   const src = stored || DEFAULT_LOGO;
   document.getElementById('logoPreview').src = src;
   document.getElementById('printLogo').src = src;
@@ -2081,7 +2088,7 @@ function onLogoUpload(e) {
   const reader = new FileReader();
   reader.onload = ev => {
     const dataUrl = ev.target.result;
-    localStorage.setItem(LOGO_KEY, dataUrl);
+    lsSet(LOGO_KEY, dataUrl);
     document.getElementById('logoPreview').src = dataUrl;
     document.getElementById('printLogo').src = dataUrl;
     toast('Logo updated');
@@ -2090,14 +2097,14 @@ function onLogoUpload(e) {
   e.target.value = '';
 }
 function resetLogo() {
-  localStorage.removeItem(LOGO_KEY);
+  lsRemove(LOGO_KEY);
   document.getElementById('logoPreview').src = DEFAULT_LOGO;
   document.getElementById('printLogo').src = DEFAULT_LOGO;
   toast('Logo reset to default');
 }
 function clearLogo() {
   if (!confirm('Remove logo entirely from invoices?')) return;
-  localStorage.setItem(LOGO_KEY, ' ');
+  lsSet(LOGO_KEY, ' ');
   document.getElementById('logoPreview').src = '';
   document.getElementById('logoPreview').alt = 'No logo';
   document.getElementById('printLogo').src = '';
@@ -2124,12 +2131,16 @@ function refreshTypeList() {
 function updateDateLabels() {
   const today = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
   const isoToday = new Date().toISOString().slice(0,10);
-  document.getElementById('todayDate').textContent = today;
-  document.getElementById('printDate').textContent = today;
-  document.getElementById('printVatPct').textContent = parseFloat(document.getElementById('vatRate').value).toFixed(1);
-  document.getElementById('printVatNote').textContent = parseFloat(document.getElementById('vatRate').value).toFixed(1);
-  const quoteNo = document.getElementById('quoteNo').value || ('DO-' + isoToday.replace(/-/g,''));
-  document.getElementById('printQuoteNo').textContent = quoteNo;
+  // Null-safe: some print elements (e.g. the old footer note) may have been removed.
+  // A missing element must never throw here — that would abort startup before the
+  // lookups are wired up.
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const vatPct = parseFloat(document.getElementById('vatRate').value).toFixed(1);
+  setText('todayDate', today);
+  setText('printDate', today);
+  setText('printVatPct', vatPct);
+  setText('printVatNote', vatPct);
+  setText('printQuoteNo', document.getElementById('quoteNo').value || ('DO-' + isoToday.replace(/-/g,'')));
 }
 function updatePrintCustomer() {
   const block = document.getElementById('customerBlock');
@@ -2593,14 +2604,14 @@ function clearQuote() {
 
 // ---------- SAVED QUOTATIONS (tracking + editing) ----------
 function loadQuotations() {
-  const s = localStorage.getItem(QUOTATIONS_KEY);
+  const s = lsGet(QUOTATIONS_KEY);
   if (s) {
     try { quotations = JSON.parse(s); } catch(e) { quotations = []; }
   }
   if (!Array.isArray(quotations)) quotations = [];
 }
 function saveQuotations() {
-  localStorage.setItem(QUOTATIONS_KEY, JSON.stringify(quotations));
+  lsSet(QUOTATIONS_KEY, JSON.stringify(quotations));
 }
 
 // Next auto D.O. number for the current year: DO-YYYY-NNN.
@@ -3642,11 +3653,11 @@ function applyEmbeddedData() {
   // Persisting can throw (localStorage full, or blocked on file:// pages). Never let
   // that abort init — loadCustomers()/loadCatalog() fall back to the embedded data.
   try {
-    const applied = Number(localStorage.getItem(EMBEDDED_STAMP_KEY) || 0);
+    const applied = Number(lsGet(EMBEDDED_STAMP_KEY) || 0);
     if (applied >= Number(data.stamp)) return;   // already applied this snapshot (or a newer one)
-    if (Array.isArray(data.customers)) localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(data.customers));
-    if (Array.isArray(data.catalog) && data.catalog.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(data.catalog));
-    localStorage.setItem(EMBEDDED_STAMP_KEY, String(data.stamp));
+    if (Array.isArray(data.customers)) lsSet(CUSTOMERS_KEY, JSON.stringify(data.customers));
+    if (Array.isArray(data.catalog) && data.catalog.length) lsSet(STORAGE_KEY, JSON.stringify(data.catalog));
+    lsSet(EMBEDDED_STAMP_KEY, String(data.stamp));
   } catch(e) {
     console.warn('Embedded data could not be saved to localStorage; using it in-memory instead.', e);
   }
