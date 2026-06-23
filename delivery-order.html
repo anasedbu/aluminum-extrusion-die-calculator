@@ -1678,11 +1678,16 @@ function updateShareButton() {
 }
 
 function loadCatalog() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try { catalog = JSON.parse(stored); }
-    catch(e) { catalog = JSON.parse(JSON.stringify(SEED_CATALOG)); }
-  } else {
+  catalog = [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) catalog = JSON.parse(stored);
+  } catch(e) { catalog = []; }
+  if (!Array.isArray(catalog)) catalog = [];
+  // Fall back to the built-in seed whenever the catalog is empty — covers a missing key,
+  // a stored "[]", a parse failure, or blocked/full localStorage — so the item lookup
+  // always has products to suggest.
+  if (catalog.length === 0) {
     catalog = JSON.parse(JSON.stringify(SEED_CATALOG));
     saveCatalog();
   }
@@ -1713,7 +1718,8 @@ function loadCatalog() {
   }
 }
 function saveCatalog() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(catalog));
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(catalog)); }
+  catch(e) { console.warn('Catalog could not be saved to localStorage; keeping it in memory.', e); }
   updateStats();
   refreshTypeList();
 }
